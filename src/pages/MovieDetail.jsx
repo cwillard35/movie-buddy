@@ -10,6 +10,7 @@ export default function MovieDetail() {
   const [myScore, setMyScore] = useState(null)
   const [userId, setUserId] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [lightbox, setLightbox] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -73,9 +74,32 @@ export default function MovieDetail() {
       {/* Hero */}
       <div style={{ background: '#fff', borderRadius: 12, border: '0.5px solid #eee', padding: 20, marginBottom: 14, display: 'flex', gap: 20 }}>
         {movie.poster_url
-          ? <img src={movie.poster_url} alt={movie.title} style={{ width: 120, height: 180, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
-          : <div style={{ width: 120, height: 180, borderRadius: 8, background: '#EEEDFE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, flexShrink: 0 }}>🎬</div>
+  ? <img
+      src={movie.poster_url}
+      alt={movie.title}
+      onClick={() => setLightbox(true)}
+      style={{ width: 120, height: 180, borderRadius: 8, objectFit: 'cover', flexShrink: 0, cursor: 'zoom-in' }}
+    />
+  : <div style={{ width: 120, height: 180, borderRadius: 8, background: '#EEEDFE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, flexShrink: 0 }}>🎬</div>
         }
+
+        {/* Lightbox */}
+        {lightbox && (
+        <div
+            onClick={() => setLightbox(false)}
+            style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center',
+            justifyContent: 'center', zIndex: 1000, cursor: 'zoom-out'
+            }}
+        >
+            <img
+            src={movie.poster_url.replace('w500', 'w780')}
+            alt={movie.title}
+            style={{ maxHeight: '90vh', maxWidth: '90vw', borderRadius: 12, objectFit: 'contain' }}
+            />
+        </div>
+        )}
         <div style={{ flex: 1 }}>
           <h1 style={{ fontSize: 22, fontWeight: 500, marginBottom: 4 }}>{movie.title}</h1>
           <div style={{ fontSize: 13, color: '#666', marginBottom: 12 }}>
