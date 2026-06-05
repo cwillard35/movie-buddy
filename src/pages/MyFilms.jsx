@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { useNavigate } from 'react-router-dom'
 
 export default function MyFilms() {
   const [scores, setScores] = useState([])
@@ -11,6 +12,7 @@ export default function MyFilms() {
   const [sort, setSort] = useState('score-desc')
   const [view, setView] = useState('list')
   const [genres, setGenres] = useState([])
+  const navigate = useNavigate()
 
   useEffect(() => {
     async function loadFilms() {
@@ -140,9 +142,10 @@ export default function MyFilms() {
             <div style={{ padding: 24, textAlign: 'center', color: '#888', fontSize: 13 }}>No films found</div>
           )}
           {filtered.map((s, i) => (
-            <div key={s.id} style={{
-              display: 'flex', alignItems: 'center', gap: 12, padding: '8px 14px',
-              borderBottom: i < filtered.length - 1 ? '0.5px solid #f0f0f0' : 'none'
+            <div key={s.id} onClick={() => navigate(`/movie/${s.movie_id}`)} style={{
+                display: 'flex', alignItems: 'center', gap: 12, padding: '8px 14px',
+                borderBottom: i < filtered.length - 1 ? '0.5px solid #f0f0f0' : 'none',
+                cursor: 'pointer'
             }}>
               {s.movies?.poster_url
                 ? <img src={s.movies.poster_url} alt={s.movies.title} style={{ width: 28, height: 42, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
@@ -172,7 +175,7 @@ export default function MyFilms() {
       {view === 'grid' && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 10 }}>
           {filtered.map(s => (
-            <div key={s.id} style={{ borderRadius: 8, overflow: 'hidden', border: '0.5px solid #eee', background: '#fff' }}>
+            <div key={s.id} onClick={() => navigate(`/movie/${s.movie_id}`)} style={{ borderRadius: 8, overflow: 'hidden', border: '0.5px solid #eee', background: '#fff', cursor: 'pointer' }}>
               {s.movies?.poster_url
                 ? <img src={s.movies.poster_url} alt={s.movies.title} style={{ width: '100%', height: 130, objectFit: 'cover' }} />
                 : <div style={{ width: '100%', height: 130, background: '#EEEDFE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>🎬</div>
