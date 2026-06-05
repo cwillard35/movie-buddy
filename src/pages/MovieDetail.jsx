@@ -16,7 +16,6 @@ export default function MovieDetail() {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) setUserId(user.id)
 
-      // Get movie
       const { data: movieData } = await supabase
         .from('movies')
         .select('*')
@@ -26,7 +25,6 @@ export default function MovieDetail() {
       if (!movieData) { navigate('/'); return }
       setMovie(movieData)
 
-      // Get all scores for this movie
       const { data: scoreData } = await supabase
         .from('scores')
         .select('*, users(username, id)')
@@ -57,7 +55,6 @@ export default function MovieDetail() {
     ? scores.reduce((sum, s) => sum + parseFloat(s.score), 0) / scores.length
     : null
 
-  // Score distribution
   const buckets = {}
   scores.forEach(s => {
     const bucket = Math.floor(parseFloat(s.score) * 2) / 2
@@ -68,7 +65,6 @@ export default function MovieDetail() {
   return (
     <div style={{ padding: 20, maxWidth: 1100, margin: '0 auto' }}>
 
-      {/* Back button */}
       <button onClick={() => navigate(-1)} style={{
         fontSize: 12, color: '#666', background: 'none', border: 'none',
         cursor: 'pointer', marginBottom: 16, padding: 0
@@ -90,7 +86,7 @@ export default function MovieDetail() {
               <span key={g} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: '#EEEDFE', color: '#534AB7', fontWeight: 500 }}>{g}</span>
             ))}
           </div>
-          <div style={{ display: 'flex', gap: 20 }}>
+          <div style={{ display: 'flex', gap: 20, marginBottom: 12 }}>
             {movie.imdb_score && (
               <div>
                 <div style={{ fontSize: 10, color: '#888' }}>IMDB</div>
@@ -114,6 +110,12 @@ export default function MovieDetail() {
               <div style={{ fontSize: 16, fontWeight: 500 }}>{scores.length} members</div>
             </div>
           </div>
+          <button
+            onClick={() => navigate(`/log?movie=${movie.id}`)}
+            style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: '#534AB7', color: '#fff', fontSize: 12, fontWeight: 500, cursor: 'pointer' }}
+          >
+            {myScore ? 'Edit your score' : '+ Log your score'}
+          </button>
         </div>
       </div>
 
@@ -152,7 +154,7 @@ export default function MovieDetail() {
           </div>
         </div>
 
-        {/* All member scores */}
+        {/* Member scores */}
         <div style={{ background: '#fff', borderRadius: 12, border: '0.5px solid #eee', padding: 16 }}>
           <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 12 }}>Member scores</div>
           {scores.length === 0 && (
