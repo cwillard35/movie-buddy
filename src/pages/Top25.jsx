@@ -146,7 +146,7 @@ export default function Top25() {
             🏆 Top 25 <span style={{ fontSize: 11, color: '#888', fontWeight: 400 }}>showing {top25.length} films</span>
           </div>
           {top25.map((m, i) => (
-            <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', borderBottom: i < top25.length - 1 ? '0.5px solid #f0f0f0' : 'none' }}>
+            <div key={m.id} onClick={() => navigate(`/movie/${m.id}`)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', borderBottom: i < top25.length - 1 ? '0.5px solid #f0f0f0' : 'none', cursor: 'pointer' }}>
               <div style={{ fontSize: 12, color: i < 3 ? '#534AB7' : '#aaa', width: 22, textAlign: 'right', fontWeight: i < 3 ? 500 : 400, flexShrink: 0 }}>{i + 1}</div>
               {m.poster_url
                 ? <img src={m.poster_url} alt={m.title} style={{ width: 28, height: 42, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
