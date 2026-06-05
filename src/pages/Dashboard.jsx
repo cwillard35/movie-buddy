@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { useNavigate } from 'react-router-dom'
 
 export default function Dashboard() {
   const [stats, setStats] = useState(null)
   const [recentScores, setRecentScores] = useState([])
   const [loading, setLoading] = useState(true)
+  const navigate = useNavigate()
 
   useEffect(() => {
     async function loadDashboard() {
@@ -71,7 +73,7 @@ export default function Dashboard() {
       <div style={{ background: '#fff', borderRadius: 12, border: '0.5px solid #eee', padding: 16 }}>
         <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 12 }}>Recently scored</div>
         {recentScores.map(s => (
-          <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0', borderBottom: '0.5px solid #f0f0f0' }}>
+          <div key={s.id} onClick={() => navigate(`/movie/${s.movie_id}`)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0', borderBottom: '0.5px solid #f0f0f0', cursor: 'pointer' }}>
             {s.movies?.poster_url
               ? <img src={s.movies.poster_url} alt={s.movies.title} style={{ width: 32, height: 48, borderRadius: 4, objectFit: 'cover' }} />
               : <div style={{ width: 32, height: 48, borderRadius: 4, background: '#EEEDFE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>🎬</div>
