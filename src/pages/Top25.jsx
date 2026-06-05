@@ -45,7 +45,7 @@ export default function Top25() {
       // Convert to array with averages
       const enriched = Object.values(movieMap).map(m => ({
         ...m.movie,
-        groupScore: m.scores.reduce((a, b) => a + b, 0) / m.scores.length,
+        groupScore: m.scores.length > 0 ? m.scores.reduce((a, b) => a + b, 0) / m.scores.length : null,
         myScore: m.myScore,
         scoredBy: m.scores.length
       }))
@@ -159,8 +159,8 @@ export default function Top25() {
                 {mode === 'group' && m.myScore && (
                   <div style={{ fontSize: 10, color: '#888' }}>mine {m.myScore.toFixed(1)}</div>
                 )}
-                {mode === 'mine' && m.groupScore && (
-                  <div style={{ fontSize: 10, color: '#888' }}>group {m.groupScore.toFixed(2)}</div>
+                {mode === 'mine' && m.groupScore && !isNaN(m.groupScore) && (
+                <div style={{ fontSize: 10, color: '#888' }}>group {m.groupScore.toFixed(2)}</div>
                 )}
               </div>
             </div>

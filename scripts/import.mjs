@@ -87,7 +87,12 @@ async function main() {
     for (const user of users) {
       const val = row[user]
       if (val && val !== '.') {
-        movieScores[user] = parseFloat(val)
+        if (val.toLowerCase() === 'no') {
+            movieScores[user] = 'skipped'
+        } else {
+            const parsed = parseFloat(val)
+            if (!isNaN(parsed)) movieScores[user] = parsed
+        }
       }
     }
     scores.push({ title, year, scores: movieScores })

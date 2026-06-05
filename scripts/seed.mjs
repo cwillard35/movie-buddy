@@ -65,15 +65,14 @@ async function main() {
     const movieId = movieIdMap[`${row.title}|${row.year}`]
     if (!movieId) continue
     for (const [username, score] of Object.entries(row.scores)) {
-      const userId = userIdMap[username]
-      if (!userId) continue
-      scoreRows.push({
-        user_id: userId,
-        movie_id: movieId,
-        score,
-        status: 'scored'
-      })
-    }
+        const userId = userIdMap[username]
+        if (!userId) continue
+        if (score === 'skipped') {
+            scoreRows.push({ user_id: userId, movie_id: movieId, score: null, status: 'skipped' })
+        } else {
+            scoreRows.push({ user_id: userId, movie_id: movieId, score, status: 'scored' })
+        }
+}
   }
 
   console.log(`Inserting ${scoreRows.length} scores one by one...`)
