@@ -1,7 +1,6 @@
 import fs from 'fs'
 import { createClient } from '@supabase/supabase-js'
 import { config } from 'dotenv'
-console.log('Using key starting with:', process.env.SUPABASE_SERVICE_KEY?.slice(0, 20))
 config({ path: '.env.local' })
 
 const supabase = createClient(
@@ -12,57 +11,59 @@ const supabase = createClient(
 const movies = JSON.parse(fs.readFileSync('scripts/movies_enriched.json'))
 const scoresRaw = JSON.parse(fs.readFileSync('scripts/scores_raw.json'))
 
-const USERS = ['Casey','Dana','Brett','Brian','Dave','Jeff','Devin','Mark','RyRy','Eric','Hans','Susan','Jason','Julie','Brady','Lucy','Bryan','Owen']
-
 async function main() {
-  console.log('Inserting movies...')
+  console.log('Inserting movies one by one...')
+  const movieIdMap = {}
+  let movieInserted = 0
+  let movieSkipped = 0
 
-  // Insert movies in batches of 100
-  const batches = []
-  for (let i = 0; i < movies.length; i += 100) {
-    batches.push(movies.slice(i, i + 100))
-  }
-
-  const movieIdMap = {} // title+year -> uuid
-
-  for (const batch of batches) {
-    const { data, error } = await supabase
-      .from('movies')
-      .upsert(batch, { onConflict: 'tmdb_id' })
-      .select('id, title, year')
-
-    if (error) { console.error('Movie insert error:', error); continue }
-    for (const m of data) {
-      movieIdMap[`${m.title}|${m.year}`] = m.id
+  for (const movie of movies) {
+    let error
+    if (movie.tmdb_id) {
+      const res = await supabase
+        .from('movies')
+        .upsert(movie, { onConflict: 'tmdb_id' })
+        .select('id, title, year')
+      error = res.error
+      if (!error && res.data?.[0]) {
+        movieIdMap[`${res.data[0].title}|${res.data[0].year}`] = res.data[0].id
+      }
+    } else {
+      const res = await supabase
+        .from('movies')
+        .insert(movie)
+        .select('id, title, year')
+      error = res.error
+      if (!error && res.data?.[0]) {
+        movieIdMap[`${res.data[0].title}|${res.data[0].year}`] = res.data[0].id
+      }
     }
-    process.stdout.write('.')
+    if (error) movieSkipped++
+    else movieInserted++
+    if ((movieInserted + movieSkipped) % 50 === 0) process.stdout.write('.')
   }
 
-  console.log(`\nInserted ${Object.keys(movieIdMap).length} movies`)
+  console.log(`\nMapped ${Object.keys(movieIdMap).length} movies`)
 
-  // We need user UUIDs - fetch them from the users table
-  console.log('Fetching users...')
+  // Fetch users
   const { data: userRows, error: userError } = await supabase
     .from('users')
     .select('id, username')
 
-  if (userError) { console.error('User fetch error:', userError); return }
+  if (userError) { console.error('User fetch error:', userError.message); return }
 
   const userIdMap = {}
   for (const u of userRows) {
     userIdMap[u.username] = u.id
   }
 
-  console.log(`Found ${userRows.length} users:`, Object.keys(userIdMap))
+  console.log(`Found ${userRows.length} users`)
 
-  // Insert scores
-  console.log('Inserting scores...')
+  // Build score rows
   const scoreRows = []
-
   for (const row of scoresRaw) {
     const movieId = movieIdMap[`${row.title}|${row.year}`]
     if (!movieId) continue
-
     for (const [username, score] of Object.entries(row.scores)) {
       const userId = userIdMap[username]
       if (!userId) continue
@@ -75,18 +76,21 @@ async function main() {
     }
   }
 
-  // Insert scores in batches
-  for (let i = 0; i < scoreRows.length; i += 500) {
-    const batch = scoreRows.slice(i, i + 500)
+  console.log(`Inserting ${scoreRows.length} scores one by one...`)
+  let inserted = 0
+  let skipped = 0
+
+  for (const row of scoreRows) {
     const { error } = await supabase
       .from('scores')
-      .upsert(batch, { onConflict: 'user_id,movie_id' })
-    if (error) console.error('Score insert error:', error)
-    else process.stdout.write('.')
+      .upsert(row, { onConflict: 'user_id,movie_id' })
+    if (error) skipped++
+    else inserted++
+    if ((inserted + skipped) % 200 === 0) process.stdout.write('.')
   }
 
-  console.log(`\nInserted ${scoreRows.length} scores`)
-  console.log('\nDone!')
+  console.log(`\nInserted: ${inserted}, Skipped: ${skipped}`)
+  console.log('Done!')
 }
 
 main().catch(console.error)
