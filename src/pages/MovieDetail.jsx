@@ -65,6 +65,36 @@ export default function MovieDetail() {
 
   return (
     <div style={{ padding: 20, maxWidth: 1100, margin: '0 auto' }}>
+      <style>{`
+        .detail-hero {
+          display: flex;
+          gap: 20px;
+        }
+        .detail-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 14px;
+        }
+        @media (max-width: 768px) {
+          .detail-hero {
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+          }
+          .detail-hero-info {
+            width: 100%;
+          }
+          .detail-hero-tags {
+            justify-content: center;
+          }
+          .detail-hero-stats {
+            justify-content: center;
+          }
+          .detail-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
 
       <button onClick={() => navigate(-1)} style={{
         fontSize: 12, color: '#666', background: 'none', border: 'none',
@@ -72,78 +102,62 @@ export default function MovieDetail() {
       }}>← Back</button>
 
       {/* Hero */}
-      <div style={{ background: '#fff', borderRadius: 12, border: '0.5px solid #eee', padding: 20, marginBottom: 14, display: 'flex', gap: 20 }}>
-        {movie.poster_url
-  ? <img
-      src={movie.poster_url}
-      alt={movie.title}
-      onClick={() => setLightbox(true)}
-      style={{ width: 120, height: 180, borderRadius: 8, objectFit: 'cover', flexShrink: 0, cursor: 'zoom-in' }}
-    />
-  : <div style={{ width: 120, height: 180, borderRadius: 8, background: '#EEEDFE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, flexShrink: 0 }}>🎬</div>
-        }
-
-        {/* Lightbox */}
-        {lightbox && (
-        <div
-            onClick={() => setLightbox(false)}
-            style={{
-            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-            background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center',
-            justifyContent: 'center', zIndex: 1000, cursor: 'zoom-out'
-            }}
-        >
-            <img
-            src={movie.poster_url.replace('w500', 'w780')}
-            alt={movie.title}
-            style={{ maxHeight: '90vh', maxWidth: '90vw', borderRadius: 12, objectFit: 'contain' }}
-            />
-        </div>
-        )}
-        <div style={{ flex: 1 }}>
-          <h1 style={{ fontSize: 22, fontWeight: 500, marginBottom: 4 }}>{movie.title}</h1>
-          <div style={{ fontSize: 13, color: '#666', marginBottom: 12 }}>
-            {movie.year} · {movie.director} · {movie.runtime ? `${movie.runtime} min` : ''}
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
-            {movie.genres?.map(g => (
-              <span key={g} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: '#EEEDFE', color: '#534AB7', fontWeight: 500 }}>{g}</span>
-            ))}
-          </div>
-          <div style={{ display: 'flex', gap: 20, marginBottom: 12 }}>
-            {movie.imdb_score && (
-              <div>
-                <div style={{ fontSize: 10, color: '#888' }}>IMDB</div>
-                <div style={{ fontSize: 16, fontWeight: 500 }}>{movie.imdb_score}</div>
-              </div>
-            )}
-            {groupAvg && (
-              <div>
-                <div style={{ fontSize: 10, color: '#888' }}>Group avg</div>
-                <div style={{ fontSize: 16, fontWeight: 500, color: scoreColor(groupAvg) }}>{groupAvg.toFixed(2)}</div>
-              </div>
-            )}
-            {myScore && (
-              <div>
-                <div style={{ fontSize: 10, color: '#888' }}>Your score</div>
-                <div style={{ fontSize: 16, fontWeight: 500, color: scoreColor(myScore) }}>{myScore.toFixed(1)}</div>
-              </div>
-            )}
-            <div>
-              <div style={{ fontSize: 10, color: '#888' }}>Scored by</div>
-              <div style={{ fontSize: 16, fontWeight: 500 }}>{scores.length} members</div>
+      <div style={{ background: '#fff', borderRadius: 12, border: '0.5px solid #eee', padding: 20, marginBottom: 14 }}>
+        <div className="detail-hero">
+          {movie.poster_url
+            ? <img
+                src={movie.poster_url}
+                alt={movie.title}
+                onClick={() => setLightbox(true)}
+                style={{ width: 120, height: 180, borderRadius: 8, objectFit: 'cover', flexShrink: 0, cursor: 'zoom-in' }}
+              />
+            : <div style={{ width: 120, height: 180, borderRadius: 8, background: '#EEEDFE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, flexShrink: 0 }}>🎬</div>
+          }
+          <div className="detail-hero-info" style={{ flex: 1 }}>
+            <h1 style={{ fontSize: 22, fontWeight: 500, marginBottom: 4 }}>{movie.title}</h1>
+            <div style={{ fontSize: 13, color: '#666', marginBottom: 12 }}>
+              {movie.year} · {movie.director} · {movie.runtime ? `${movie.runtime} min` : ''}
             </div>
+            <div className="detail-hero-tags" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
+              {movie.genres?.map(g => (
+                <span key={g} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: '#EEEDFE', color: '#534AB7', fontWeight: 500 }}>{g}</span>
+              ))}
+            </div>
+            <div className="detail-hero-stats" style={{ display: 'flex', gap: 20, marginBottom: 12, flexWrap: 'wrap' }}>
+              {movie.imdb_score && (
+                <div>
+                  <div style={{ fontSize: 10, color: '#888' }}>IMDB</div>
+                  <div style={{ fontSize: 16, fontWeight: 500 }}>{movie.imdb_score}</div>
+                </div>
+              )}
+              {groupAvg && (
+                <div>
+                  <div style={{ fontSize: 10, color: '#888' }}>Group avg</div>
+                  <div style={{ fontSize: 16, fontWeight: 500, color: scoreColor(groupAvg) }}>{groupAvg.toFixed(2)}</div>
+                </div>
+              )}
+              {myScore && (
+                <div>
+                  <div style={{ fontSize: 10, color: '#888' }}>Your score</div>
+                  <div style={{ fontSize: 16, fontWeight: 500, color: scoreColor(myScore) }}>{myScore.toFixed(1)}</div>
+                </div>
+              )}
+              <div>
+                <div style={{ fontSize: 10, color: '#888' }}>Scored by</div>
+                <div style={{ fontSize: 16, fontWeight: 500 }}>{scores.length} members</div>
+              </div>
+            </div>
+            <button
+              onClick={() => navigate(`/log?movie=${movie.id}`)}
+              style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: '#534AB7', color: '#fff', fontSize: 12, fontWeight: 500, cursor: 'pointer' }}
+            >
+              {myScore ? 'Edit your score' : '+ Log your score'}
+            </button>
           </div>
-          <button
-            onClick={() => navigate(`/log?movie=${movie.id}`)}
-            style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: '#534AB7', color: '#fff', fontSize: 12, fontWeight: 500, cursor: 'pointer' }}
-          >
-            {myScore ? 'Edit your score' : '+ Log your score'}
-          </button>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+      <div className="detail-grid">
 
         {/* Score distribution */}
         <div style={{ background: '#fff', borderRadius: 12, border: '0.5px solid #eee', padding: 16 }}>
@@ -209,6 +223,24 @@ export default function MovieDetail() {
         </div>
 
       </div>
+
+      {/* Lightbox */}
+      {lightbox && (
+        <div
+          onClick={() => setLightbox(false)}
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center',
+            justifyContent: 'center', zIndex: 1000, cursor: 'zoom-out'
+          }}
+        >
+          <img
+            src={movie.poster_url.replace('w500', 'w780')}
+            alt={movie.title}
+            style={{ maxHeight: '90vh', maxWidth: '90vw', borderRadius: 12, objectFit: 'contain' }}
+          />
+        </div>
+      )}
     </div>
   )
 }
