@@ -34,7 +34,6 @@ export default function Buddies() {
     setSelected(buddy)
     setDetailLoading(true)
 
-    // Get shared high scores (both scored >= 7.5)
     const { data: myScores } = await supabase
       .from('scores')
       .select('movie_id, score, movies(*)')
@@ -52,7 +51,6 @@ export default function Buddies() {
     if (myScores && theirScores) {
       const theirMap = {}
       theirScores.forEach(s => { theirMap[s.movie_id] = parseFloat(s.score) })
-
       const shared = myScores
         .filter(s => theirMap[s.movie_id])
         .map(s => ({
@@ -63,11 +61,9 @@ export default function Buddies() {
         }))
         .sort((a, b) => a.diff - b.diff)
         .slice(0, 6)
-
       setAgreements(shared)
     }
 
-    // Get recommendations — films they scored >= 7 that I haven't scored
     const { data: myAllScores } = await supabase
       .from('scores')
       .select('movie_id')
@@ -84,9 +80,7 @@ export default function Buddies() {
       .order('score', { ascending: false })
 
     if (theirHighScores) {
-      const unseen = theirHighScores
-        .filter(s => !mySeen.has(s.movie_id))
-        .slice(0, 5)
+      const unseen = theirHighScores.filter(s => !mySeen.has(s.movie_id)).slice(0, 5)
       setRecs(unseen)
     }
 
@@ -117,13 +111,38 @@ export default function Buddies() {
 
   return (
     <div style={{ padding: 20, maxWidth: 1100, margin: '0 auto' }}>
+      <style>{`
+        .buddies-layout {
+          display: grid;
+          grid-template-columns: 280px 1fr;
+          gap: 14px;
+        }
+        .buddies-agreements {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 8px;
+        }
+        .buddy-list {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+        @media (max-width: 768px) {
+          .buddies-layout {
+            grid-template-columns: 1fr;
+          }
+          .buddies-agreements {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+      `}</style>
+
       <h2 style={{ fontSize: 20, fontWeight: 500, marginBottom: 16 }}>Buddies</h2>
 
       {buddies.length === 0 && (
         <div style={{ padding: 20, color: '#888', fontSize: 13 }}>No buddy matches found yet.</div>
       )}
 
-      {/* Top buddy banner */}
       {buddies[0] && (
         <div style={{ background: '#EEEDFE', borderRadius: 12, border: '1.5px solid #AFA9EC', padding: 16, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 16 }}>
           <div style={{ width: 52, height: 52, borderRadius: '50%', background: '#534AB7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 500, color: '#fff', flexShrink: 0 }}>
@@ -143,47 +162,46 @@ export default function Buddies() {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 14 }}>
+      <div className="buddies-layout">
 
-        {/* Buddy list */}
         <div style={{ background: '#fff', borderRadius: 12, border: '0.5px solid #eee', padding: 14 }}>
           <div style={{ fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 10 }}>All matches · ranked by correlation</div>
-          {buddies.map((b, i) => (
-            <div key={b.user_id} onClick={() => loadDetail(b, userId)} style={{
-              display: 'flex', alignItems: 'center', gap: 10, padding: '8px 8px',
-              borderRadius: 8, cursor: 'pointer', marginBottom: 4,
-              background: selected?.user_id === b.user_id ? '#EEEDFE' : 'transparent',
-              border: selected?.user_id === b.user_id ? '0.5px solid #AFA9EC' : '0.5px solid transparent'
-            }}>
-              <div style={{
-                width: 32, height: 32, borderRadius: '50%',
-                background: corrBg(b.correlation),
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 11, fontWeight: 500, color: corrColor(b.correlation), flexShrink: 0
+          <div className="buddy-list">
+            {buddies.map(b => (
+              <div key={b.user_id} onClick={() => loadDetail(b, userId)} style={{
+                display: 'flex', alignItems: 'center', gap: 10, padding: '8px',
+                borderRadius: 8, cursor: 'pointer', marginBottom: 4,
+                background: selected?.user_id === b.user_id ? '#EEEDFE' : 'transparent',
+                border: selected?.user_id === b.user_id ? '0.5px solid #AFA9EC' : '0.5px solid transparent'
               }}>
-                {b.username.slice(0, 2).toUpperCase()}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 500 }}>{b.username}</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
-                  <div style={{ flex: 1, height: 3, background: '#f0f0f0', borderRadius: 2, overflow: 'hidden' }}>
-                    <div style={{ width: `${Math.max(0, b.correlation) * 100}%`, height: '100%', background: corrColor(b.correlation), borderRadius: 2 }} />
+                <div style={{
+                  width: 32, height: 32, borderRadius: '50%',
+                  background: corrBg(b.correlation),
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 11, fontWeight: 500, color: corrColor(b.correlation), flexShrink: 0
+                }}>
+                  {b.username.slice(0, 2).toUpperCase()}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 500 }}>{b.username}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
+                    <div style={{ flex: 1, height: 3, background: '#f0f0f0', borderRadius: 2, overflow: 'hidden' }}>
+                      <div style={{ width: `${Math.max(0, b.correlation) * 100}%`, height: '100%', background: corrColor(b.correlation), borderRadius: 2 }} />
+                    </div>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: corrColor(b.correlation), flexShrink: 0 }} />
                   </div>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: corrColor(b.correlation), flexShrink: 0 }} />
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
-        {/* Detail panel */}
         <div>
           {detailLoading && <div style={{ padding: 20, color: '#888', fontSize: 13 }}>Loading...</div>}
 
           {!detailLoading && selected && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-              {/* Buddy header */}
               <div style={{ background: '#fff', borderRadius: 12, border: '0.5px solid #eee', padding: 16 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
                   <div style={{
@@ -198,9 +216,6 @@ export default function Buddies() {
                     <div style={{ fontSize: 15, fontWeight: 500 }}>{selected.username}</div>
                     <div style={{ fontSize: 12, color: '#888' }}>{selected.shared_count} films scored together</div>
                   </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: 11, color: '#888' }}>{selected.shared_count} shared films</div>
-                    </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <div style={{ fontSize: 11, color: '#888' }}>Taste match</div>
@@ -211,11 +226,10 @@ export default function Buddies() {
                 </div>
               </div>
 
-              {/* Agreements */}
               {agreements.length > 0 && (
                 <div style={{ background: '#fff', borderRadius: 12, border: '0.5px solid #eee', padding: 16 }}>
                   <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 12 }}>Films you both loved</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                  <div className="buddies-agreements">
                     {agreements.map(m => (
                       <div key={m.id} onClick={() => navigate(`/movie/${m.id}`)} style={{ cursor: 'pointer', background: '#f9f9f9', borderRadius: 8, padding: 10 }}>
                         {m.poster_url
@@ -239,7 +253,6 @@ export default function Buddies() {
                 </div>
               )}
 
-              {/* Recommendations */}
               {recs.length > 0 && (
                 <div style={{ background: '#fff', borderRadius: 12, border: '0.5px solid #eee', padding: 16 }}>
                   <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 12 }}>Films {selected.username} loved that you haven't seen</div>
