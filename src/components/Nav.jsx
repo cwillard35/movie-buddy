@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 
 const links = [
   { to: '/', label: 'Dashboard' },
-  { to: '/log', label: 'Log a score' },
+  { to: '/log', label: 'Search' },
   { to: '/films', label: 'My films' },
   { to: '/buddies', label: 'Buddies' },
   { to: '/top25', label: 'Top 25' },

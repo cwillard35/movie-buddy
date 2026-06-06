@@ -132,7 +132,7 @@ export default function LogScore() {
       {/* Step 1 — Search */}
       {step === 1 && (
         <div style={{ background: '#fff', borderRadius: 12, border: '0.5px solid #eee', padding: 16 }}>
-          <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 12 }}>Find a film</div>
+          <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 12 }}>Search films</div>
           <input
             type="text"
             placeholder="Search by title..."
