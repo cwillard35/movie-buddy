@@ -24,7 +24,6 @@ export default function LogScore() {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) setUserId(user.id)
 
-      // If prefilled movie ID, load it
       if (prefilledId) {
         const { data } = await supabase
           .from('movies')
@@ -33,7 +32,6 @@ export default function LogScore() {
           .single()
         if (data) {
           setSelectedMovie(data)
-          // Check if user already scored this
           const { data: existing } = await supabase
             .from('scores')
             .select('*')
@@ -52,7 +50,6 @@ export default function LogScore() {
     init()
   }, [prefilledId])
 
-  // Search movies
   useEffect(() => {
     if (!query || query.length < 2) { setResults([]); return }
     const timer = setTimeout(async () => {
@@ -66,13 +63,6 @@ export default function LogScore() {
     }, 300)
     return () => clearTimeout(timer)
   }, [query])
-
-  function selectMovie(movie) {
-    setSelectedMovie(movie)
-    setQuery('')
-    setResults([])
-    setStep(2)
-  }
 
   function formatScore(v) {
     const n = parseFloat(v)
@@ -88,7 +78,6 @@ export default function LogScore() {
   async function handleSubmit() {
     if (!selectedMovie || !userId) return
     setSubmitting(true)
-
     const row = {
       user_id: userId,
       movie_id: selectedMovie.id,
@@ -98,13 +87,10 @@ export default function LogScore() {
       watch_date: watchDate || null,
       updated_at: new Date().toISOString()
     }
-
     const { error } = await supabase
       .from('scores')
       .upsert(row, { onConflict: 'user_id,movie_id' })
-
     if (error) { console.error(error); setSubmitting(false); return }
-
     setStep(3)
     setSubmitting(false)
   }
@@ -147,31 +133,29 @@ export default function LogScore() {
       {step === 1 && (
         <div style={{ background: '#fff', borderRadius: 12, border: '0.5px solid #eee', padding: 16 }}>
           <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 12 }}>Find a film</div>
-          <div style={{ position: 'relative', marginBottom: 12 }}>
-            <input
-              type="text"
-              placeholder="Search by title..."
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              autoFocus
-              style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '0.5px solid #ddd', fontSize: 13 }}
-            />
-          </div>
+          <input
+            type="text"
+            placeholder="Search by title..."
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            autoFocus
+            style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '0.5px solid #ddd', fontSize: 13, marginBottom: 12 }}
+          />
           {results.length > 0 && (
             <div>
               {results.map(m => (
-                <div key={m.id} onClick={() => selectMovie(m)} style={{
-                  display: 'flex', alignItems: 'center', gap: 10, padding: 8,
-                  borderRadius: 8, cursor: 'pointer', marginBottom: 4
-                }}
+                <div
+                  key={m.id}
+                  onClick={() => navigate(`/movie/${m.id}`)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 8, borderRadius: 8, marginBottom: 4, cursor: 'pointer' }}
                   onMouseEnter={e => e.currentTarget.style.background = '#f9f9f9'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                 >
                   {m.poster_url
-                    ? <img src={m.poster_url} alt={m.title} style={{ width: 32, height: 48, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
-                    : <div style={{ width: 32, height: 48, borderRadius: 4, background: '#EEEDFE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>🎬</div>
+                    ? <img src={m.poster_url} alt={m.title} style={{ width: 36, height: 54, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
+                    : <div style={{ width: 36, height: 54, borderRadius: 4, background: '#EEEDFE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>🎬</div>
                   }
-                  <div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13, fontWeight: 500 }}>{m.title}</div>
                     <div style={{ fontSize: 11, color: '#888' }}>{m.year} · {m.genres?.slice(0, 2).join(', ')}</div>
                   </div>
@@ -188,8 +172,6 @@ export default function LogScore() {
       {/* Step 2 — Score */}
       {step === 2 && selectedMovie && (
         <div style={{ background: '#fff', borderRadius: 12, border: '0.5px solid #eee', padding: 16 }}>
-
-          {/* Movie info */}
           <div style={{ display: 'flex', gap: 14, marginBottom: 20, paddingBottom: 16, borderBottom: '0.5px solid #f0f0f0' }}>
             {selectedMovie.poster_url
               ? <img src={selectedMovie.poster_url} alt={selectedMovie.title} style={{ width: 70, height: 105, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
@@ -211,7 +193,6 @@ export default function LogScore() {
             </div>
           </div>
 
-          {/* Score input */}
           <div style={{ marginBottom: 16 }}>
             <div style={{ fontSize: 12, fontWeight: 500, marginBottom: 12 }}>Your score</div>
             <div style={{ textAlign: 'center', marginBottom: 12 }}>
@@ -239,7 +220,6 @@ export default function LogScore() {
             </div>
           </div>
 
-          {/* Optional fields */}
           <div style={{ borderTop: '0.5px solid #f0f0f0', paddingTop: 14, marginBottom: 16 }}>
             <div
               onClick={() => setShowOptional(!showOptional)}
