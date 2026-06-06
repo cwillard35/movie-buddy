@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
 import { useNavigate } from 'react-router-dom'
+import { supabase } from '../lib/supabase'
 
 export default function Top25() {
   const [films, setFilms] = useState([])
@@ -9,7 +9,6 @@ export default function Top25() {
   const [genre, setGenre] = useState('all')
   const [decade, setDecade] = useState('all')
   const [threshold, setThreshold] = useState(5)
-  const [sort, setSort] = useState('score-desc')
   const [genres, setGenres] = useState([])
   const [userId, setUserId] = useState(null)
   const navigate = useNavigate()
@@ -19,7 +18,6 @@ export default function Top25() {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) setUserId(user.id)
 
-      // Get all scores with movie details
       const { data, error } = await supabase
         .from('scores')
         .select('*, movies(*), users(username, id)')
@@ -27,16 +25,11 @@ export default function Top25() {
 
       if (error) { console.error(error); return }
 
-      // Group by movie and compute averages
       const movieMap = {}
       for (const s of data) {
         const mid = s.movie_id
         if (!movieMap[mid]) {
-          movieMap[mid] = {
-            movie: s.movies,
-            scores: [],
-            myScore: null
-          }
+          movieMap[mid] = { movie: s.movies, scores: [], myScore: null }
         }
         movieMap[mid].scores.push(parseFloat(s.score))
         if (s.user_id === user?.id) {
@@ -44,7 +37,6 @@ export default function Top25() {
         }
       }
 
-      // Convert to array with averages
       const enriched = Object.values(movieMap).map(m => ({
         ...m.movie,
         groupScore: m.scores.length > 0 ? m.scores.reduce((a, b) => a + b, 0) / m.scores.length : null,
@@ -52,7 +44,6 @@ export default function Top25() {
         scoredBy: m.scores.length
       }))
 
-      // Extract genres
       const allGenres = new Set()
       enriched.forEach(m => m.genres?.forEach(g => allGenres.add(g)))
       setGenres([...allGenres].sort())
@@ -68,7 +59,6 @@ export default function Top25() {
     return '#993C1D'
   }
 
-  // Apply filters
   let filtered = films.filter(m => {
     if (m.scoredBy < threshold) return false
     if (genre !== 'all' && !m.genres?.includes(genre)) return false
@@ -89,16 +79,55 @@ export default function Top25() {
   const top25 = filtered.slice(0, 25)
   const bottom10 = [...filtered].sort((a, b) => a[scoreKey] - b[scoreKey]).slice(0, 10)
 
-  console.log('loading:', loading, 'films:', films.length)
   if (loading) return <div style={{ padding: 20 }}>Loading...</div>
 
   return (
     <div style={{ padding: 20, maxWidth: 1100, margin: '0 auto' }}>
+      <style>{`
+        .top25-filters {
+          display: flex;
+          gap: 10px;
+          flex-wrap: wrap;
+          align-items: flex-end;
+        }
+        .top25-toggle {
+          margin-left: auto;
+          display: flex;
+          gap: 6px;
+        }
+        .top25-lists {
+          display: grid;
+          grid-template-columns: 3fr 2fr;
+          gap: 14px;
+        }
+        @media (max-width: 768px) {
+          .top25-filters {
+            flex-direction: column;
+            align-items: stretch;
+          }
+          .top25-filters select {
+            width: 100%;
+          }
+          .top25-filters input[type=range] {
+            width: 100%;
+          }
+          .top25-toggle {
+            margin-left: 0;
+            width: 100%;
+          }
+          .top25-toggle button {
+            flex: 1;
+          }
+          .top25-lists {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
+
       <h2 style={{ fontSize: 20, fontWeight: 500, marginBottom: 16 }}>Top 25 & Bottom 10</h2>
 
-      {/* Filters */}
       <div style={{ background: '#fff', borderRadius: 12, border: '0.5px solid #eee', padding: 14, marginBottom: 14 }}>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div className="top25-filters">
           <div>
             <div style={{ fontSize: 11, color: '#888', marginBottom: 4 }}>Decade</div>
             <select value={decade} onChange={e => setDecade(e.target.value)}
@@ -124,7 +153,7 @@ export default function Top25() {
               onChange={e => setThreshold(parseInt(e.target.value))}
               style={{ width: 120 }} />
           </div>
-          <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
+          <div className="top25-toggle">
             {['group', 'mine'].map(m => (
               <button key={m} onClick={() => setMode(m)} style={{
                 fontSize: 12, padding: '6px 14px', borderRadius: 8,
@@ -138,15 +167,17 @@ export default function Top25() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: 14 }}>
+      <div className="top25-lists">
 
-        {/* Top 25 */}
         <div style={{ background: '#fff', borderRadius: 12, border: '0.5px solid #eee', padding: 14 }}>
           <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 12 }}>
             🏆 Top 25 <span style={{ fontSize: 11, color: '#888', fontWeight: 400 }}>showing {top25.length} films</span>
           </div>
           {top25.map((m, i) => (
-            <div key={m.id} onClick={() => navigate(`/movie/${m.id}`)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', borderBottom: i < top25.length - 1 ? '0.5px solid #f0f0f0' : 'none', cursor: 'pointer' }}>
+            <div key={m.id} onClick={() => navigate(`/movie/${m.id}`)} style={{
+              display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0',
+              borderBottom: i < top25.length - 1 ? '0.5px solid #f0f0f0' : 'none', cursor: 'pointer'
+            }}>
               <div style={{ fontSize: 12, color: i < 3 ? '#534AB7' : '#aaa', width: 22, textAlign: 'right', fontWeight: i < 3 ? 500 : 400, flexShrink: 0 }}>{i + 1}</div>
               {m.poster_url
                 ? <img src={m.poster_url} alt={m.title} style={{ width: 28, height: 42, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
@@ -162,20 +193,22 @@ export default function Top25() {
                   <div style={{ fontSize: 10, color: '#888' }}>mine {m.myScore.toFixed(1)}</div>
                 )}
                 {mode === 'mine' && m.groupScore && !isNaN(m.groupScore) && (
-                <div style={{ fontSize: 10, color: '#888' }}>group {m.groupScore.toFixed(2)}</div>
+                  <div style={{ fontSize: 10, color: '#888' }}>group {m.groupScore.toFixed(2)}</div>
                 )}
               </div>
             </div>
           ))}
         </div>
 
-        {/* Bottom 10 */}
         <div style={{ background: '#fff', borderRadius: 12, border: '0.5px solid #eee', padding: 14 }}>
           <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 12 }}>
             😬 Bottom 10 <span style={{ fontSize: 11, color: '#888', fontWeight: 400 }}>showing {bottom10.length} films</span>
           </div>
           {bottom10.map((m, i) => (
-            <div key={m.id} onClick={() => navigate(`/movie/${m.id}`)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', borderBottom: i < bottom10.length - 1 ? '0.5px solid #f0f0f0' : 'none', cursor: 'pointer' }}>
+            <div key={m.id} onClick={() => navigate(`/movie/${m.id}`)} style={{
+              display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0',
+              borderBottom: i < bottom10.length - 1 ? '0.5px solid #f0f0f0' : 'none', cursor: 'pointer'
+            }}>
               <div style={{ fontSize: 12, color: '#aaa', width: 22, textAlign: 'right', flexShrink: 0 }}>{i + 1}</div>
               {m.poster_url
                 ? <img src={m.poster_url} alt={m.title} style={{ width: 28, height: 42, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
