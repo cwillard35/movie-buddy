@@ -32,17 +32,19 @@ function App() {
   return (
     <div>
       <Nav session={session} />
-      <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/log" element={<LogScore />} />
-        <Route path="/films" element={<MyFilms />} />
-        <Route path="/buddies" element={<Buddies />} />
-        <Route path="/top25" element={<Top25 />} />
-        <Route path="/defend" element={<Defend />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/movie/:id" element={<MovieDetail />} />
-        <Route path="*" element={<Navigate to="/" />} />
-      </Routes>
+        <div className="page-wrap">
+          <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/log" element={<LogScore />} />
+          <Route path="/films" element={<MyFilms />} />
+          <Route path="/buddies" element={<Buddies />} />
+          <Route path="/top25" element={<Top25 />} />
+          <Route path="/defend" element={<Defend />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/movie/:id" element={<MovieDetail />} />
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </div>
     </div>
   )
 }
