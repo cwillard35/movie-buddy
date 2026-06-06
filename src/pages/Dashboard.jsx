@@ -55,7 +55,7 @@ export default function Dashboard() {
         Welcome back, {stats?.username}
       </h2>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 24 }}>
         <div style={{ background: '#fff', borderRadius: 12, border: '0.5px solid #eee', padding: 16 }}>
           <div style={{ fontSize: 11, color: '#888', marginBottom: 4 }}>Films scored</div>
           <div style={{ fontSize: 28, fontWeight: 500 }}>{stats?.total}</div>

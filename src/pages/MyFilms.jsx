@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
 import { useNavigate } from 'react-router-dom'
+import { supabase } from '../lib/supabase'
 
 export default function MyFilms() {
   const [scores, setScores] = useState([])
@@ -18,15 +18,12 @@ export default function MyFilms() {
     async function loadFilms() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
-
       const { data } = await supabase
         .from('scores')
         .select('*, movies(*)')
         .eq('user_id', user.id)
-
       if (data) {
         setScores(data)
-        // Extract unique genres
         const allGenres = new Set()
         data.forEach(s => s.movies?.genres?.forEach(g => allGenres.add(g)))
         setGenres([...allGenres].sort())
@@ -38,17 +35,8 @@ export default function MyFilms() {
 
   useEffect(() => {
     let result = scores.filter(s => s.status === status)
-
-    if (search) {
-      result = result.filter(s =>
-        s.movies?.title?.toLowerCase().includes(search.toLowerCase())
-      )
-    }
-
-    if (genre !== 'all') {
-      result = result.filter(s => s.movies?.genres?.includes(genre))
-    }
-
+    if (search) result = result.filter(s => s.movies?.title?.toLowerCase().includes(search.toLowerCase()))
+    if (genre !== 'all') result = result.filter(s => s.movies?.genres?.includes(genre))
     result.sort((a, b) => {
       if (sort === 'score-desc') return parseFloat(b.score || 0) - parseFloat(a.score || 0)
       if (sort === 'score-asc') return parseFloat(a.score || 0) - parseFloat(b.score || 0)
@@ -58,7 +46,6 @@ export default function MyFilms() {
       if (sort === 'date-desc') return new Date(b.created_at) - new Date(a.created_at)
       return 0
     })
-
     setFiltered(result)
   }, [scores, status, search, genre, sort])
 
@@ -72,12 +59,50 @@ export default function MyFilms() {
 
   return (
     <div style={{ padding: 20, maxWidth: 1100, margin: '0 auto' }}>
+      <style>{`
+        .films-controls {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+          align-items: center;
+          margin-bottom: 12px;
+        }
+        .status-tabs {
+          display: flex;
+          gap: 4px;
+        }
+        .films-search {
+          flex: 1;
+          min-width: 120px;
+        }
+        @media (max-width: 768px) {
+          .films-controls {
+            flex-direction: column;
+            align-items: stretch;
+          }
+          .status-tabs {
+            width: 100%;
+          }
+          .status-tabs button {
+            flex: 1;
+          }
+          .films-search {
+            width: 100%;
+          }
+          .films-selects {
+            display: flex;
+            gap: 6px;
+          }
+          .films-selects select {
+            flex: 1;
+          }
+        }
+      `}</style>
+
       <h2 style={{ fontSize: 20, fontWeight: 500, marginBottom: 16 }}>My Films</h2>
 
-      {/* Controls */}
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 12 }}>
-        {/* Status tabs */}
-        <div style={{ display: 'flex', gap: 4 }}>
+      <div className="films-controls">
+        <div className="status-tabs">
           {['scored', 'unseen', 'skipped'].map(s => (
             <button key={s} onClick={() => setStatus(s)} style={{
               fontSize: 12, padding: '5px 12px', borderRadius: 8,
@@ -86,40 +111,37 @@ export default function MyFilms() {
               color: status === s ? '#fff' : '#666',
               fontWeight: status === s ? 500 : 400,
               textTransform: 'capitalize'
-            }}>{s} <span style={{ opacity: 0.7 }}>
-              {scores.filter(sc => sc.status === s).length}
-            </span></button>
+            }}>{s} <span style={{ opacity: 0.7 }}>{scores.filter(sc => sc.status === s).length}</span></button>
           ))}
         </div>
 
-        {/* Search */}
         <input
+          className="films-search"
           type="text"
           placeholder="Search titles..."
           value={search}
           onChange={e => setSearch(e.target.value)}
-          style={{ flex: 1, minWidth: 120, padding: '5px 10px', borderRadius: 8, border: '0.5px solid #ddd', fontSize: 12 }}
+          style={{ padding: '5px 10px', borderRadius: 8, border: '0.5px solid #ddd', fontSize: 12 }}
         />
 
-        {/* Genre filter */}
-        <select value={genre} onChange={e => setGenre(e.target.value)}
-          style={{ fontSize: 12, padding: '5px 8px', borderRadius: 8, border: '0.5px solid #ddd' }}>
-          <option value="all">All genres</option>
-          {genres.map(g => <option key={g} value={g}>{g}</option>)}
-        </select>
+        <div className="films-selects" style={{ display: 'flex', gap: 6 }}>
+          <select value={genre} onChange={e => setGenre(e.target.value)}
+            style={{ fontSize: 12, padding: '5px 8px', borderRadius: 8, border: '0.5px solid #ddd' }}>
+            <option value="all">All genres</option>
+            {genres.map(g => <option key={g} value={g}>{g}</option>)}
+          </select>
 
-        {/* Sort */}
-        <select value={sort} onChange={e => setSort(e.target.value)}
-          style={{ fontSize: 12, padding: '5px 8px', borderRadius: 8, border: '0.5px solid #ddd' }}>
-          <option value="score-desc">Score ↓</option>
-          <option value="score-asc">Score ↑</option>
-          <option value="year-desc">Newest</option>
-          <option value="year-asc">Oldest</option>
-          <option value="title">Title A–Z</option>
-          <option value="date-desc">Recently logged</option>
-        </select>
+          <select value={sort} onChange={e => setSort(e.target.value)}
+            style={{ fontSize: 12, padding: '5px 8px', borderRadius: 8, border: '0.5px solid #ddd' }}>
+            <option value="score-desc">Score ↓</option>
+            <option value="score-asc">Score ↑</option>
+            <option value="year-desc">Newest</option>
+            <option value="year-asc">Oldest</option>
+            <option value="title">Title A–Z</option>
+            <option value="date-desc">Recently logged</option>
+          </select>
+        </div>
 
-        {/* View toggle */}
         <div style={{ display: 'flex', gap: 2 }}>
           {['list', 'grid'].map(v => (
             <button key={v} onClick={() => setView(v)} style={{
@@ -135,7 +157,6 @@ export default function MyFilms() {
         Showing {filtered.length} film{filtered.length !== 1 ? 's' : ''}
       </div>
 
-      {/* List view */}
       {view === 'list' && (
         <div style={{ background: '#fff', borderRadius: 12, border: '0.5px solid #eee' }}>
           {filtered.length === 0 && (
@@ -143,9 +164,9 @@ export default function MyFilms() {
           )}
           {filtered.map((s, i) => (
             <div key={s.id} onClick={() => navigate(`/movie/${s.movie_id}`)} style={{
-                display: 'flex', alignItems: 'center', gap: 12, padding: '8px 14px',
-                borderBottom: i < filtered.length - 1 ? '0.5px solid #f0f0f0' : 'none',
-                cursor: 'pointer'
+              display: 'flex', alignItems: 'center', gap: 12, padding: '8px 14px',
+              borderBottom: i < filtered.length - 1 ? '0.5px solid #f0f0f0' : 'none',
+              cursor: 'pointer'
             }}>
               {s.movies?.poster_url
                 ? <img src={s.movies.poster_url} alt={s.movies.title} style={{ width: 28, height: 42, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
@@ -153,7 +174,7 @@ export default function MyFilms() {
               }
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.movies?.title}</div>
-                <div style={{ fontSize: 11, color: '#888' }}>{s.movies?.year} · {s.movies?.genres?.slice(0,2).join(', ')}</div>
+                <div style={{ fontSize: 11, color: '#888' }}>{s.movies?.year} · {s.movies?.genres?.slice(0, 2).join(', ')}</div>
               </div>
               {s.status === 'scored' && (
                 <div style={{ fontSize: 14, fontWeight: 500, color: scoreColor(s.score), flexShrink: 0 }}>
@@ -171,7 +192,6 @@ export default function MyFilms() {
         </div>
       )}
 
-      {/* Grid view */}
       {view === 'grid' && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 10 }}>
           {filtered.map(s => (
