@@ -8,7 +8,7 @@ import Buddies from './pages/Buddies'
 import Top25 from './pages/Top25'
 import Defend from './pages/Defend'
 import Profile from './pages/Profile'
-import LogScore from './pages/LogScore'
+import Search from './pages/Search'
 import MyFilms from './pages/MyFilms'
 import MovieDetail from './pages/MovieDetail'
 
@@ -35,7 +35,7 @@ function App() {
         <div className="page-wrap">
           <Routes>
           <Route path="/" element={<Dashboard />} />
-          <Route path="/log" element={<LogScore />} />
+          <Route path="/log" element={<Search />} />
           <Route path="/films" element={<MyFilms />} />
           <Route path="/buddies" element={<Buddies />} />
           <Route path="/top25" element={<Top25 />} />

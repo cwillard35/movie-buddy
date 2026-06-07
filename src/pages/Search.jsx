@@ -139,7 +139,7 @@ export default function LogScore() {
             value={query}
             onChange={e => setQuery(e.target.value)}
             autoFocus
-            style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '0.5px solid #ddd', fontSize: 13, marginBottom: 12 }}
+            style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '0.5px solid #ddd', fontSize: 13, marginBottom: 12, boxSizing: 'border-box' }}
           />
           {results.length > 0 && (
             <div>
