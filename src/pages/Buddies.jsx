@@ -165,7 +165,7 @@ export default function Buddies() {
       <div className="buddies-layout">
 
         <div style={{ background: '#fff', borderRadius: 12, border: '0.5px solid #eee', padding: 14 }}>
-          <div style={{ fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 10 }}>All matches · ranked by correlation</div>
+          <div style={{ fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 10 }}>All matches · most similar to you</div>
           <div className="buddy-list">
             {buddies.map(b => (
               <div key={b.user_id} onClick={() => loadDetail(b, userId)} style={{
