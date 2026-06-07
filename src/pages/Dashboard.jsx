@@ -126,7 +126,7 @@ export default function Dashboard() {
 
         {/* Buddy activity feed */}
         <div style={{ background: '#fff', borderRadius: 12, border: '0.5px solid #eee', padding: 16 }}>
-          <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 4 }}>Recent Activity</div>
+          <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 4 }}>Recent activity from your buddies</div>
           <div style={{ fontSize: 11, color: '#888', marginBottom: 12 }}>Films scored by your top 10 matches in the last 2 weeks</div>
           {buddyActivity.length === 0 && (
             <div style={{ fontSize: 12, color: '#888' }}>No buddy activity in the last 14 days.</div>
