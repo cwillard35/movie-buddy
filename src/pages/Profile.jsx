@@ -146,8 +146,8 @@ export default function Profile() {
               grid-template-columns: repeat(2, 1fr);
             }
             .top10-grid {
-              grid-template-columns: repeat(3, 1fr);
-              gap: 6px;
+              grid-template-columns: repeat(5, 1fr);
+              gap: 4px;
             }
             .profile-bottom {
               grid-template-columns: 1fr;
@@ -314,6 +314,20 @@ export default function Profile() {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Logout */}
+      <div style={{ marginTop: 14, marginBottom: 8, textAlign: 'center' }}>
+        <button
+          onClick={async () => { await supabase.auth.signOut() }}
+          style={{
+            fontSize: 13, padding: '8px 24px', borderRadius: 8,
+            border: '0.5px solid #eee', background: 'transparent',
+            color: '#999', cursor: 'pointer'
+          }}
+        >
+          Sign out
+        </button>
       </div>
 
     </div>
