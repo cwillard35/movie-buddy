@@ -103,6 +103,43 @@ export default function LogScore() {
     navigate(`/movie/${selectedMovie.id}`)
   }
 
+  const [allMovies, setAllMovies] = useState([])
+  const [allMoviesLoaded, setAllMoviesLoaded] = useState(false)
+
+  useEffect(() => {
+    async function loadAllMovies() {
+      const pageSize = 1000
+      let from = 0
+      let all = []
+      while (true) {
+        const { data } = await supabase
+          .from('movies')
+          .select('id, title, year, poster_url, genres')
+          .order('title', { ascending: true })
+          .range(from, from + pageSize - 1)
+        if (!data || data.length === 0) break
+        all = [...all, ...data]
+        if (data.length < pageSize) break
+        from += pageSize
+      }
+      setAllMovies(all)
+      setAllMoviesLoaded(true)
+    }
+    loadAllMovies()
+  }, [])
+
+  function groupByLetter(movies) {
+    const groups = {}
+    movies.forEach(m => {
+      const raw = m.title.replace(/^(The |A |An )/i, '')
+      const letter = raw[0]?.toUpperCase() || '#'
+      const key = /[A-Z]/.test(letter) ? letter : '#'
+      if (!groups[key]) groups[key] = []
+      groups[key].push(m)
+    })
+    return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b))
+  }
+
   const quickScores = [1, 2, 3, 4, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10]
 
   return (
@@ -129,10 +166,10 @@ export default function LogScore() {
         ))}
       </div>
 
-      {/* Step 1 — Search */}
+      {/* Step 1 — Search + A–Z list */}
       {step === 1 && (
         <div style={{ background: '#fff', borderRadius: 12, border: '0.5px solid #eee', padding: 16 }}>
-          <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 12 }}>Search films</div>
+
           <input
             type="text"
             placeholder="Search by title..."
@@ -141,31 +178,74 @@ export default function LogScore() {
             autoFocus
             style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '0.5px solid #ddd', fontSize: 13, marginBottom: 12, boxSizing: 'border-box' }}
           />
-          {results.length > 0 && (
-            <div>
-              {results.map(m => (
-                <div
-                  key={m.id}
-                  onClick={() => navigate(`/movie/${m.id}`)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 8, borderRadius: 8, marginBottom: 4, cursor: 'pointer' }}
-                  onMouseEnter={e => e.currentTarget.style.background = '#f9f9f9'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                >
-                  {m.poster_url
-                    ? <img src={m.poster_url} alt={m.title} style={{ width: 36, height: 54, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
-                    : <div style={{ width: 36, height: 54, borderRadius: 4, background: '#EEEDFE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>🎬</div>
-                  }
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 500 }}>{m.title}</div>
-                    <div style={{ fontSize: 11, color: '#888' }}>{m.year} · {m.genres?.slice(0, 2).join(', ')}</div>
+
+          {!allMoviesLoaded && (
+            <div style={{ fontSize: 12, color: '#aaa', textAlign: 'center', padding: 24 }}>Loading…</div>
+          )}
+
+          {allMoviesLoaded && (() => {
+            const filtered = query.length > 0
+              ? allMovies.filter(m => m.title.toLowerCase().includes(query.toLowerCase()))
+              : allMovies
+            if (filtered.length === 0) return (
+              <div style={{ fontSize: 12, color: '#888', textAlign: 'center', padding: 16 }}>No films found</div>
+            )
+            const grouped = query.length > 0 ? null : groupByLetter(filtered)
+            return grouped ? (
+              <div>
+                {grouped.map(([letter, movies]) => (
+                  <div key={letter}>
+                    <div style={{
+                      fontSize: 11, fontWeight: 600, color: '#534AB7',
+                      padding: '8px 0 3px', borderBottom: '0.5px solid #eee',
+                      letterSpacing: '0.5px', position: 'sticky', top: 0,
+                      background: '#fff', zIndex: 1
+                    }}>{letter}</div>
+                    {movies.map(m => (
+                      <div
+                        key={m.id}
+                        onClick={() => navigate(`/movie/${m.id}`)}
+                        style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 4px', borderBottom: '0.5px solid #f5f5f5', cursor: 'pointer', borderRadius: 6 }}
+                        onMouseEnter={e => e.currentTarget.style.background = '#f9f9f9'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                      >
+                        {m.poster_url
+                          ? <img src={m.poster_url} alt={m.title} style={{ width: 28, height: 42, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
+                          : <div style={{ width: 28, height: 42, borderRadius: 4, background: '#EEEDFE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, flexShrink: 0 }}>🎬</div>
+                        }
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.title}</div>
+                          <div style={{ fontSize: 11, color: '#aaa' }}>{m.year}</div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-          {query.length >= 2 && results.length === 0 && (
-            <div style={{ fontSize: 12, color: '#888', textAlign: 'center', padding: 16 }}>No films found</div>
-          )}
+                ))}
+              </div>
+            ) : (
+              <div>
+                {filtered.map(m => (
+                  <div
+                    key={m.id}
+                    onClick={() => navigate(`/movie/${m.id}`)}
+                    style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 4px', borderBottom: '0.5px solid #f5f5f5', cursor: 'pointer', borderRadius: 6 }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#f9f9f9'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    {m.poster_url
+                      ? <img src={m.poster_url} alt={m.title} style={{ width: 28, height: 42, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
+                      : <div style={{ width: 28, height: 42, borderRadius: 4, background: '#EEEDFE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, flexShrink: 0 }}>🎬</div>
+                    }
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.title}</div>
+                      <div style={{ fontSize: 11, color: '#aaa' }}>{m.year}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
+          })()}
+
         </div>
       )}
 
