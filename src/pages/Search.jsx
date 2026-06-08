@@ -75,24 +75,20 @@ export default function LogScore() {
     return '#993C1D'
   }
 
-  async function handleSubmit() {
-    if (!selectedMovie || !userId) return
-    setSubmitting(true)
-    const row = {
-      user_id: userId,
-      movie_id: selectedMovie.id,
-      score,
-      status: 'scored',
-      notes: notes || null,
-      watch_date: watchDate || null,
-      updated_at: new Date().toISOString()
+  async function handleTMDBSelect(tmdbMovie) {
+    setImportingId(tmdbMovie.id)
+    try {
+      const imported = await importTMDBFilm(tmdbMovie.id, supabase)
+      if (imported) {
+        navigate(`/movie/${imported.id}`, { replace: true })
+      } else {
+        console.error('Import returned null')
+      }
+    } catch (e) {
+      console.error('Import failed:', e)
+    } finally {
+      setImportingId(null)
     }
-    const { error } = await supabase
-      .from('scores')
-      .upsert(row, { onConflict: 'user_id,movie_id' })
-    if (error) { console.error(error); setSubmitting(false); return }
-    setStep(3)
-    setSubmitting(false)
   }
 
   async function handleSkip() {
