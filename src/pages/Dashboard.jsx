@@ -20,12 +20,13 @@ export default function Dashboard() {
         .eq('id', user.id)
         .single()
 
+      // order by updated_at so re-scores surface at the top
       const { data: scores } = await supabase
         .from('scores')
         .select('*, movies(*)')
         .eq('user_id', user.id)
         .eq('status', 'scored')
-        .order('created_at', { ascending: false })
+        .order('updated_at', { ascending: false })
 
       if (scores) {
         const total = scores.length
@@ -58,6 +59,18 @@ export default function Dashboard() {
     return `${days} days ago`
   }
 
+  // true if updated_at is more than 5 minutes after created_at
+  function wasEdited(s) {
+    if (!s.updated_at || !s.created_at) return false
+    return new Date(s.updated_at) - new Date(s.created_at) > 5 * 60 * 1000
+  }
+
+  function scoreColor(s) {
+    if (s >= 8) return '#0F6E56'
+    if (s >= 6.5) return '#534AB7'
+    return '#993C1D'
+  }
+
   if (loading) return <div style={{ padding: 20 }}>Loading...</div>
 
   return (
@@ -69,9 +82,7 @@ export default function Dashboard() {
           gap: 14px;
         }
         @media (max-width: 768px) {
-          .dash-grid {
-            grid-template-columns: 1fr;
-          }
+          .dash-grid { grid-template-columns: 1fr; }
         }
       `}</style>
 
@@ -98,30 +109,50 @@ export default function Dashboard() {
 
       <div className="dash-grid">
 
-        {/* Recently scored */}
+        {/* Recently scored by you */}
         <div style={{ background: '#fff', borderRadius: 12, border: '0.5px solid #eee', padding: 16 }}>
           <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 12 }}>Recently scored by you</div>
           {recentScores.length === 0 && (
             <div style={{ fontSize: 12, color: '#888' }}>No scores yet — go log some films!</div>
           )}
-          {recentScores.map(s => (
-            <div key={s.id} onClick={() => navigate(`/movie/${s.movie_id}`)} style={{
-              display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0',
-              borderBottom: '0.5px solid #f0f0f0', cursor: 'pointer'
-            }}>
-              {s.movies?.poster_url
-                ? <img src={s.movies.poster_url} alt={s.movies.title} style={{ width: 32, height: 48, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
-                : <div style={{ width: 32, height: 48, borderRadius: 4, background: '#EEEDFE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>🎬</div>
-              }
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.movies?.title}</div>
-                <div style={{ fontSize: 11, color: '#888' }}>{s.movies?.year} · {s.movies?.genres?.slice(0, 2).join(', ')}</div>
+          {recentScores.map((s, i) => {
+            const edited = wasEdited(s)
+            return (
+              <div key={s.id} onClick={() => navigate(`/movie/${s.movie_id}`)} style={{
+                display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0',
+                borderBottom: i < recentScores.length - 1 ? '0.5px solid #f0f0f0' : 'none',
+                cursor: 'pointer'
+              }}>
+                {s.movies?.poster_url
+                  ? <img src={s.movies.poster_url} alt={s.movies.title} style={{ width: 32, height: 48, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
+                  : <div style={{ width: 32, height: 48, borderRadius: 4, background: '#EEEDFE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>🎬</div>
+                }
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    <div style={{ fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {s.movies?.title}
+                    </div>
+                    {edited && (
+                      <span style={{ fontSize: 9, fontWeight: 500, color: '#888', background: '#f0f0f0', padding: '1px 5px', borderRadius: 20, flexShrink: 0 }}>
+                        edited
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#888' }}>
+                    {s.movies?.year} · {s.movies?.genres?.slice(0, 2).join(', ')}
+                  </div>
+                  {edited && (
+                    <div style={{ fontSize: 10, color: '#aaa', marginTop: 1 }}>
+                      updated {timeAgo(s.updated_at)}
+                    </div>
+                  )}
+                </div>
+                <div style={{ fontSize: 14, fontWeight: 500, color: scoreColor(parseFloat(s.score)), flexShrink: 0 }}>
+                  {parseFloat(s.score).toFixed(1)}
+                </div>
               </div>
-              <div style={{ fontSize: 14, fontWeight: 500, color: s.score >= 8 ? '#0F6E56' : s.score >= 6.5 ? '#534AB7' : '#993C1D', flexShrink: 0 }}>
-                {parseFloat(s.score).toFixed(1)}
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
 
         {/* Buddy activity feed */}
@@ -131,25 +162,35 @@ export default function Dashboard() {
           {buddyActivity.length === 0 && (
             <div style={{ fontSize: 12, color: '#888' }}>No buddy activity in the last 14 days.</div>
           )}
-          {buddyActivity.map((a, i) => (
-            <div key={`${a.movie_id}-${a.scored_by}`} onClick={() => navigate(`/movie/${a.movie_id}`)} style={{
-              display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0',
-              borderBottom: i < buddyActivity.length - 1 ? '0.5px solid #f0f0f0' : 'none',
-              cursor: 'pointer'
-            }}>
-              {a.poster_url
-                ? <img src={a.poster_url} alt={a.title} style={{ width: 32, height: 48, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
-                : <div style={{ width: 32, height: 48, borderRadius: 4, background: '#EEEDFE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>🎬</div>
-              }
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.title}</div>
-                <div style={{ fontSize: 11, color: '#888' }}>{a.year} · {a.genres?.slice(0, 2).join(', ')}</div>
-                <div style={{ fontSize: 11, color: '#534AB7', marginTop: 2 }}>
-                  scored by <strong>{a.scored_by}</strong> · {timeAgo(a.scored_at)}
+          {buddyActivity.map((a, i) => {
+            const edited = a.created_at && (new Date(a.scored_at) - new Date(a.created_at) > 5 * 60 * 1000)
+            return (
+              <div key={`${a.movie_id}-${a.scored_by}`} onClick={() => navigate(`/movie/${a.movie_id}`)} style={{
+                display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0',
+                borderBottom: i < buddyActivity.length - 1 ? '0.5px solid #f0f0f0' : 'none',
+                cursor: 'pointer'
+              }}>
+                {a.poster_url
+                  ? <img src={a.poster_url} alt={a.title} style={{ width: 32, height: 48, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
+                  : <div style={{ width: 32, height: 48, borderRadius: 4, background: '#EEEDFE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>🎬</div>
+                }
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    <div style={{ fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.title}</div>
+                    {edited && (
+                      <span style={{ fontSize: 9, fontWeight: 500, color: '#888', background: '#f0f0f0', padding: '1px 5px', borderRadius: 20, flexShrink: 0 }}>
+                        edited
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#888' }}>{a.year} · {a.genres?.slice(0, 2).join(', ')}</div>
+                  <div style={{ fontSize: 11, color: '#534AB7', marginTop: 2 }}>
+                    {edited ? 're-scored' : 'scored'} by <strong>{a.scored_by}</strong> · {timeAgo(a.scored_at)}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
 
       </div>
