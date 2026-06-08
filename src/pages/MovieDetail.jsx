@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { ThumbsUp, ThumbsDown, Trash2 } from 'lucide-react'
 
 export default function MovieDetail() {
   const { id } = useParams()
@@ -12,10 +13,57 @@ export default function MovieDetail() {
   const [loading, setLoading] = useState(true)
   const [lightbox, setLightbox] = useState(false)
 
+  // comments
+  const [comments, setComments] = useState([])
+  const [myVotes, setMyVotes] = useState({}) // commentId -> 1 | -1
+  const [commentSort, setCommentSort] = useState('top') // 'top' | 'new'
+  const [commentBody, setCommentBody] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  const loadComments = useCallback(async (uid) => {
+    const { data: commentData } = await supabase
+      .from('comments')
+      .select('*, users(username)')
+      .eq('movie_id', id)
+      .order('created_at', { ascending: false })
+
+    if (!commentData) return
+
+    const { data: myVoteData } = await supabase
+      .from('comment_votes')
+      .select('comment_id, vote')
+      .eq('user_id', uid || '')
+
+    const { data: allVotes } = await supabase
+      .from('comment_votes')
+      .select('comment_id, vote')
+
+    const totals = {}
+    if (allVotes) {
+      allVotes.forEach(v => {
+        totals[v.comment_id] = (totals[v.comment_id] || 0) + v.vote
+      })
+    }
+
+    const myVoteMap = {}
+    if (myVoteData) {
+      myVoteData.forEach(v => { myVoteMap[v.comment_id] = v.vote })
+    }
+
+    const enriched = commentData.map(c => ({
+      ...c,
+      netVotes: totals[c.id] || 0
+    }))
+
+    setComments(enriched)
+    setMyVotes(myVoteMap)
+  }, [id])
+
   useEffect(() => {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser()
-      if (user) setUserId(user.id)
+      const uid = user?.id || null
+      if (uid) setUserId(uid)
 
       const { data: movieData } = await supabase
         .from('movies')
@@ -34,20 +82,80 @@ export default function MovieDetail() {
 
       if (scoreData) {
         setScores(scoreData)
-        const mine = scoreData.find(s => s.user_id === user?.id)
+        const mine = scoreData.find(s => s.user_id === uid)
         if (mine) setMyScore(parseFloat(mine.score))
       }
 
+      await loadComments(uid)
       setLoading(false)
     }
     load()
-  }, [id])
+  }, [id, loadComments])
 
   function scoreColor(s) {
     if (s >= 8) return '#0F6E56'
     if (s >= 6.5) return '#534AB7'
     return '#993C1D'
   }
+
+  function timeAgo(ts) {
+    const diff = Date.now() - new Date(ts).getTime()
+    const mins = Math.floor(diff / 60000)
+    if (mins < 1) return 'just now'
+    if (mins < 60) return `${mins}m ago`
+    const hrs = Math.floor(mins / 60)
+    if (hrs < 24) return `${hrs}h ago`
+    const days = Math.floor(hrs / 24)
+    if (days < 30) return `${days}d ago`
+    return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  }
+
+  async function handleVote(commentId, direction) {
+    if (!userId) return
+    const current = myVotes[commentId]
+
+    if (current === direction) {
+      // clicking same direction removes vote
+      await supabase.from('comment_votes')
+        .delete()
+        .eq('comment_id', commentId)
+        .eq('user_id', userId)
+    } else {
+      // upsert (handles both new vote and flipping)
+      await supabase.from('comment_votes')
+        .upsert(
+          { comment_id: commentId, user_id: userId, vote: direction },
+          { onConflict: 'comment_id,user_id' }
+        )
+    }
+
+    await loadComments(userId)
+  }
+
+  async function handleDelete(commentId) {
+    await supabase.from('comments').delete().eq('id', commentId)
+    await loadComments(userId)
+  }
+
+  async function handleSubmit() {
+    if (!commentBody.trim() || !userId) return
+    setSubmitting(true)
+    await supabase.from('comments').insert({
+      movie_id: id,
+      user_id: userId,
+      body: commentBody.trim()
+    })
+    setCommentBody('')
+    await loadComments(userId)
+    setSubmitting(false)
+  }
+
+  const sortedComments = [...comments].sort((a, b) => {
+    if (commentSort === 'top') {
+      return b.netVotes - a.netVotes || new Date(b.created_at) - new Date(a.created_at)
+    }
+    return new Date(b.created_at) - new Date(a.created_at)
+  })
 
   if (loading) return <div style={{ padding: 20 }}>Loading...</div>
   if (!movie) return <div style={{ padding: 20 }}>Movie not found</div>
@@ -63,6 +171,9 @@ export default function MovieDetail() {
   })
   const maxCount = Math.max(...Object.values(buckets), 1)
 
+  const charsLeft = 140 - commentBody.length
+  const charsLeftColor = charsLeft <= 10 ? '#993C1D' : charsLeft <= 30 ? '#b45309' : '#aaa'
+
   return (
     <div style={{ padding: 20, maxWidth: 1100, margin: '0 auto' }}>
       <style>{`
@@ -74,6 +185,35 @@ export default function MovieDetail() {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 14px;
+        }
+        .comment-vote-btn {
+          background: none;
+          border: none;
+          cursor: pointer;
+          padding: 3px 5px;
+          border-radius: 4px;
+          display: flex;
+          align-items: center;
+          gap: 3px;
+          font-size: 11px;
+          transition: background 0.15s;
+        }
+        .comment-vote-btn:hover {
+          background: #f0f0f0;
+        }
+        .sort-pill {
+          padding: 4px 12px;
+          border-radius: 20px;
+          border: 0.5px solid #ddd;
+          background: none;
+          font-size: 11px;
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+        .sort-pill.active {
+          background: #534AB7;
+          color: #fff;
+          border-color: #534AB7;
         }
         @media (max-width: 768px) {
           .detail-hero {
@@ -222,6 +362,140 @@ export default function MovieDetail() {
             ))}
         </div>
 
+      </div>
+
+      {/* Comment feed */}
+      <div style={{ background: '#fff', borderRadius: 12, border: '0.5px solid #eee', padding: 16, marginTop: 14 }}>
+
+        {/* Header + sort */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+          <div style={{ fontSize: 13, fontWeight: 500 }}>
+            Comments {comments.length > 0 && <span style={{ color: '#888', fontWeight: 400 }}>({comments.length})</span>}
+          </div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button
+              className={`sort-pill${commentSort === 'top' ? ' active' : ''}`}
+              onClick={() => setCommentSort('top')}
+            >Top</button>
+            <button
+              className={`sort-pill${commentSort === 'new' ? ' active' : ''}`}
+              onClick={() => setCommentSort('new')}
+            >New</button>
+          </div>
+        </div>
+
+        {/* Compose */}
+        {userId && (
+          <div style={{ marginBottom: 16 }}>
+            <textarea
+              value={commentBody}
+              onChange={e => {
+                if (e.target.value.length <= 140) setCommentBody(e.target.value)
+              }}
+              placeholder="Add a comment…"
+              rows={2}
+              style={{
+                width: '100%', boxSizing: 'border-box',
+                border: '0.5px solid #ddd', borderRadius: 8,
+                padding: '8px 10px', fontSize: 13, resize: 'none',
+                fontFamily: 'inherit', outline: 'none', lineHeight: 1.5
+              }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
+              <span style={{ fontSize: 11, color: charsLeftColor }}>{charsLeft} left</span>
+              <button
+                onClick={handleSubmit}
+                disabled={!commentBody.trim() || submitting}
+                style={{
+                  padding: '5px 14px', borderRadius: 6, border: 'none',
+                  background: commentBody.trim() ? '#534AB7' : '#ddd',
+                  color: commentBody.trim() ? '#fff' : '#aaa',
+                  fontSize: 12, fontWeight: 500,
+                  cursor: commentBody.trim() ? 'pointer' : 'default',
+                  transition: 'all 0.15s'
+                }}
+              >
+                {submitting ? 'Posting…' : 'Post'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Feed */}
+        {sortedComments.length === 0 ? (
+          <div style={{ fontSize: 12, color: '#aaa', textAlign: 'center', padding: '20px 0' }}>
+            No comments yet. Be the first.
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {sortedComments.map((c, i) => {
+              const isMe = c.user_id === userId
+              const myVote = myVotes[c.id]
+              return (
+                <div key={c.id} style={{
+                  padding: '10px 0',
+                  borderBottom: i < sortedComments.length - 1 ? '0.5px solid #f0f0f0' : 'none',
+                  display: 'flex', gap: 10, alignItems: 'flex-start'
+                }}>
+                  {/* Avatar */}
+                  <div style={{
+                    width: 28, height: 28, borderRadius: '50%',
+                    background: isMe ? '#EEEDFE' : '#f5f5f5',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 10, fontWeight: 500,
+                    color: isMe ? '#534AB7' : '#666', flexShrink: 0
+                  }}>
+                    {c.users?.username?.slice(0, 2).toUpperCase()}
+                  </div>
+
+                  {/* Content */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 3, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 12, fontWeight: 500 }}>{c.users?.username}</span>
+                      {isMe && <span style={{ fontSize: 10, color: '#888' }}>(you)</span>}
+                      <span style={{ fontSize: 10, color: '#bbb' }}>{timeAgo(c.created_at)}</span>
+                    </div>
+                    <div style={{ fontSize: 13, color: '#333', lineHeight: 1.45, wordBreak: 'break-word' }}>
+                      {c.body}
+                    </div>
+
+                    {/* Vote row */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginTop: 6 }}>
+                      <button
+                        className="comment-vote-btn"
+                        onClick={() => handleVote(c.id, 1)}
+                        style={{ color: myVote === 1 ? '#534AB7' : '#888' }}
+                        title="Upvote"
+                      >
+                        <ThumbsUp size={12} />
+                        {c.netVotes > 0 && <span>{c.netVotes}</span>}
+                      </button>
+                      <button
+                        className="comment-vote-btn"
+                        onClick={() => handleVote(c.id, -1)}
+                        style={{ color: myVote === -1 ? '#993C1D' : '#888' }}
+                        title="Downvote"
+                      >
+                        <ThumbsDown size={12} />
+                        {c.netVotes < 0 && <span>{Math.abs(c.netVotes)}</span>}
+                      </button>
+                      {isMe && (
+                        <button
+                          className="comment-vote-btn"
+                          onClick={() => handleDelete(c.id)}
+                          style={{ color: '#ccc', marginLeft: 4 }}
+                          title="Delete comment"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       {/* Lightbox */}
