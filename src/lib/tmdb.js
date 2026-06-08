@@ -20,8 +20,8 @@ export async function fetchTMDBDetails(tmdbId) {
   const res = await fetch(
     `${TMDB_BASE}/movie/${tmdbId}?append_to_response=credits&language=en-US`,
     { headers }
-    if (!res.ok) return null
   )
+  if (!res.ok) return null
   return res.json()
 }
 
