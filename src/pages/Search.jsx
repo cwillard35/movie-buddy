@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { searchTMDB, importTMDBFilm } from '../lib/tmdb'
 
 export default function LogScore() {
   const navigate = useNavigate()
@@ -9,16 +10,27 @@ export default function LogScore() {
 
   const [step, setStep] = useState(prefilledId ? 2 : 1)
   const [query, setQuery] = useState('')
-  const [results, setResults] = useState([])
-  const [selectedMovie, setSelectedMovie] = useState(null)
   const [score, setScore] = useState(7.0)
   const [notes, setNotes] = useState('')
   const [watchDate, setWatchDate] = useState('')
   const [showOptional, setShowOptional] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [userId, setUserId] = useState(null)
+  const [selectedMovie, setSelectedMovie] = useState(null)
   const [existingScore, setExistingScore] = useState(null)
 
+  // isTMDB = true means selectedMovie is raw TMDB data, not yet in DB
+  const [isTMDB, setIsTMDB] = useState(false)
+
+  // A–Z list
+  const [allMovies, setAllMovies] = useState([])
+  const [allMoviesLoaded, setAllMoviesLoaded] = useState(false)
+
+  // TMDB fallback
+  const [tmdbResults, setTmdbResults] = useState([])
+  const [tmdbSearching, setTmdbSearching] = useState(false)
+
+  // ── Init ──────────────────────────────────────────────────────────────────
   useEffect(() => {
     async function init() {
       const { data: { user } } = await supabase.auth.getUser()
@@ -32,6 +44,7 @@ export default function LogScore() {
           .single()
         if (data) {
           setSelectedMovie(data)
+          setIsTMDB(false)
           const { data: existing } = await supabase
             .from('scores')
             .select('*')
@@ -50,58 +63,7 @@ export default function LogScore() {
     init()
   }, [prefilledId])
 
-  useEffect(() => {
-    if (!query || query.length < 2) { setResults([]); return }
-    const timer = setTimeout(async () => {
-      const { data } = await supabase
-        .from('movies')
-        .select('*')
-        .ilike('title', `%${query}%`)
-        .order('year', { ascending: false })
-        .limit(8)
-      setResults(data || [])
-    }, 300)
-    return () => clearTimeout(timer)
-  }, [query])
-
-  function formatScore(v) {
-    const n = parseFloat(v)
-    return n % 1 === 0 ? n.toFixed(1) : n.toString()
-  }
-
-  function scoreColor(s) {
-    if (s >= 8) return '#0F6E56'
-    if (s >= 6.5) return '#534AB7'
-    return '#993C1D'
-  }
-
-  async function handleTMDBSelect(tmdbMovie) {
-    setImportingId(tmdbMovie.id)
-    try {
-      const imported = await importTMDBFilm(tmdbMovie.id, supabase)
-      if (imported) {
-        navigate(`/movie/${imported.id}`, { replace: true })
-      } else {
-        console.error('Import returned null')
-      }
-    } catch (e) {
-      console.error('Import failed:', e)
-    } finally {
-      setImportingId(null)
-    }
-  }
-
-  async function handleSkip() {
-    if (!selectedMovie || !userId) return
-    await supabase
-      .from('scores')
-      .upsert({ user_id: userId, movie_id: selectedMovie.id, status: 'skipped', score: null }, { onConflict: 'user_id,movie_id' })
-    navigate(`/movie/${selectedMovie.id}`)
-  }
-
-  const [allMovies, setAllMovies] = useState([])
-  const [allMoviesLoaded, setAllMoviesLoaded] = useState(false)
-
+  // ── Load full A–Z list ────────────────────────────────────────────────────
   useEffect(() => {
     async function loadAllMovies() {
       const pageSize = 1000
@@ -124,6 +86,121 @@ export default function LogScore() {
     loadAllMovies()
   }, [])
 
+  // ── TMDB fallback search ──────────────────────────────────────────────────
+  useEffect(() => {
+    if (!query || query.length < 2) { setTmdbResults([]); return }
+    setTmdbResults([])
+
+    const timer = setTimeout(async () => {
+      const localMatches = allMovies.filter(m =>
+        m.title.toLowerCase().includes(query.toLowerCase())
+      )
+      if (localMatches.length === 0 && allMoviesLoaded) {
+        setTmdbSearching(true)
+        try {
+          const results = await searchTMDB(query)
+          setTmdbResults(results.slice(0, 8))
+        } catch (e) {
+          console.error('TMDB search failed:', e)
+        } finally {
+          setTmdbSearching(false)
+        }
+      }
+    }, 400)
+
+    return () => clearTimeout(timer)
+  }, [query, allMovies, allMoviesLoaded])
+
+  // ── Select a local DB film ────────────────────────────────────────────────
+  function handleLocalSelect(movie) {
+    navigate(`/movie/${movie.id}`)
+  }
+
+  // ── Select a TMDB film — store raw data, don't import yet ─────────────────
+  function handleTMDBSelect(tmdbMovie) {
+    const posterUrl = tmdbMovie.poster_path
+      ? `https://image.tmdb.org/t/p/w500${tmdbMovie.poster_path}`
+      : null
+    const year = tmdbMovie.release_date ? tmdbMovie.release_date.split('-')[0] : null
+
+    setSelectedMovie({
+      tmdb_id: tmdbMovie.id,
+      title: tmdbMovie.title,
+      year,
+      poster_url: posterUrl,
+      genres: [],
+      director: null,
+    })
+    setIsTMDB(true)
+    setExistingScore(null)
+    setStep(2)
+  }
+
+  // ── Submit — import first if TMDB, then save score ────────────────────────
+  async function handleSubmit() {
+    if (!selectedMovie || !userId) return
+    setSubmitting(true)
+
+    let movieId = selectedMovie.id
+
+    if (isTMDB) {
+      try {
+        const imported = await importTMDBFilm(selectedMovie.tmdb_id, supabase)
+        if (!imported) {
+          console.error('Import failed — aborting score save')
+          setSubmitting(false)
+          return
+        }
+        movieId = imported.id
+        setSelectedMovie(imported)
+        setIsTMDB(false)
+      } catch (e) {
+        console.error('Import error:', e)
+        setSubmitting(false)
+        return
+      }
+    }
+
+    const row = {
+      user_id: userId,
+      movie_id: movieId,
+      score,
+      status: 'scored',
+      notes: notes || null,
+      watch_date: watchDate || null,
+      updated_at: new Date().toISOString()
+    }
+
+    const { error } = await supabase
+      .from('scores')
+      .upsert(row, { onConflict: 'user_id,movie_id' })
+
+    if (error) { console.error(error); setSubmitting(false); return }
+    setStep(3)
+    setSubmitting(false)
+  }
+
+  // ── Skip — only for films already in DB ───────────────────────────────────
+  async function handleSkip() {
+    if (!selectedMovie || !userId || isTMDB) return
+    await supabase
+      .from('scores')
+      .upsert({ user_id: userId, movie_id: selectedMovie.id, status: 'skipped', score: null }, { onConflict: 'user_id,movie_id' })
+    navigate(`/movie/${selectedMovie.id}`)
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  function formatScore(v) {
+    const n = parseFloat(v)
+    return n % 1 === 0 ? n.toFixed(1) : n.toString()
+  }
+
+  function scoreColor(s) {
+    if (s >= 8) return '#0F6E56'
+    if (s >= 6.5) return '#534AB7'
+    return '#993C1D'
+  }
+
   function groupByLetter(movies) {
     const groups = {}
     movies.forEach(m => {
@@ -137,6 +214,40 @@ export default function LogScore() {
   }
 
   const quickScores = [1, 2, 3, 4, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10]
+
+  function FilmRow({ movie, onClick, isTmdb }) {
+    const [hovered, setHovered] = useState(false)
+    const posterUrl = movie.poster_url ||
+      (movie.poster_path ? `https://image.tmdb.org/t/p/w92${movie.poster_path}` : null)
+    const year = movie.year || (movie.release_date ? movie.release_date.split('-')[0] : '—')
+
+    return (
+      <div
+        onClick={onClick}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          padding: '6px 4px', borderBottom: '0.5px solid #f5f5f5',
+          cursor: 'pointer', borderRadius: 6,
+          background: hovered ? '#f9f9f9' : 'transparent',
+          transition: 'background 0.1s'
+        }}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+      >
+        {posterUrl
+          ? <img src={posterUrl} alt={movie.title} style={{ width: 28, height: 42, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
+          : <div style={{ width: 28, height: 42, borderRadius: 4, background: '#EEEDFE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, flexShrink: 0 }}>🎬</div>
+        }
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{movie.title}</div>
+          <div style={{ fontSize: 11, color: '#aaa' }}>{year}</div>
+        </div>
+        {isTmdb && (
+          <span style={{ fontSize: 9, padding: '2px 6px', borderRadius: 8, background: '#EEEDFE', color: '#534AB7', fontWeight: 600, flexShrink: 0 }}>TMDB</span>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div style={{ padding: 20, maxWidth: 600, margin: '0 auto' }}>
@@ -162,10 +273,9 @@ export default function LogScore() {
         ))}
       </div>
 
-      {/* Step 1 — Search + A–Z list */}
+      {/* ── Step 1 ── */}
       {step === 1 && (
         <div style={{ background: '#fff', borderRadius: 12, border: '0.5px solid #eee', padding: 16 }}>
-
           <input
             type="text"
             placeholder="Search by title..."
@@ -183,71 +293,73 @@ export default function LogScore() {
             const filtered = query.length > 0
               ? allMovies.filter(m => m.title.toLowerCase().includes(query.toLowerCase()))
               : allMovies
-            if (filtered.length === 0) return (
-              <div style={{ fontSize: 12, color: '#888', textAlign: 'center', padding: 16 }}>No films found</div>
-            )
-            const grouped = query.length > 0 ? null : groupByLetter(filtered)
-            return grouped ? (
+            const isSearching = query.length > 0
+            const grouped = !isSearching ? groupByLetter(filtered) : null
+
+            return (
               <div>
-                {grouped.map(([letter, movies]) => (
-                  <div key={letter}>
-                    <div style={{
-                      fontSize: 11, fontWeight: 600, color: '#534AB7',
-                      padding: '8px 0 3px', borderBottom: '0.5px solid #eee',
-                      letterSpacing: '0.5px', position: 'sticky', top: 0,
-                      background: '#fff', zIndex: 1
-                    }}>{letter}</div>
-                    {movies.map(m => (
-                      <div
-                        key={m.id}
-                        onClick={() => navigate(`/movie/${m.id}`)}
-                        style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 4px', borderBottom: '0.5px solid #f5f5f5', cursor: 'pointer', borderRadius: 6 }}
-                        onMouseEnter={e => e.currentTarget.style.background = '#f9f9f9'}
-                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                      >
-                        {m.poster_url
-                          ? <img src={m.poster_url} alt={m.title} style={{ width: 28, height: 42, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
-                          : <div style={{ width: 28, height: 42, borderRadius: 4, background: '#EEEDFE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, flexShrink: 0 }}>🎬</div>
-                        }
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.title}</div>
-                          <div style={{ fontSize: 11, color: '#aaa' }}>{m.year}</div>
+                {filtered.length > 0 && (
+                  grouped
+                    ? grouped.map(([letter, movies]) => (
+                        <div key={letter}>
+                          <div style={{
+                            fontSize: 11, fontWeight: 600, color: '#534AB7',
+                            padding: '8px 0 3px', borderBottom: '0.5px solid #eee',
+                            letterSpacing: '0.5px', position: 'sticky', top: 0,
+                            background: '#fff', zIndex: 1
+                          }}>{letter}</div>
+                          {movies.map(m => (
+                            <FilmRow key={m.id} movie={m} onClick={() => handleLocalSelect(m)} />
+                          ))}
                         </div>
+                      ))
+                    : filtered.map(m => (
+                        <FilmRow key={m.id} movie={m} onClick={() => handleLocalSelect(m)} />
+                      ))
+                )}
+
+                {isSearching && filtered.length === 0 && (
+                  <div>
+                    {tmdbSearching && (
+                      <div style={{ fontSize: 12, color: '#aaa', textAlign: 'center', padding: 16 }}>Searching TMDB…</div>
+                    )}
+                    {!tmdbSearching && tmdbResults.length > 0 && (
+                      <div>
+                        <div style={{
+                          fontSize: 11, color: '#aaa', padding: '8px 0 6px',
+                          borderBottom: '0.5px solid #eee', marginBottom: 4
+                        }}>
+                          Not in your group's catalog — score it to add
+                        </div>
+                        {tmdbResults.map(m => (
+                          <FilmRow key={m.id} movie={m} onClick={() => handleTMDBSelect(m)} isTmdb />
+                        ))}
                       </div>
-                    ))}
+                    )}
+                    {!tmdbSearching && tmdbResults.length === 0 && query.length >= 2 && (
+                      <div style={{ fontSize: 12, color: '#888', textAlign: 'center', padding: 16 }}>No films found</div>
+                    )}
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div>
-                {filtered.map(m => (
-                  <div
-                    key={m.id}
-                    onClick={() => navigate(`/movie/${m.id}`)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 4px', borderBottom: '0.5px solid #f5f5f5', cursor: 'pointer', borderRadius: 6 }}
-                    onMouseEnter={e => e.currentTarget.style.background = '#f9f9f9'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                  >
-                    {m.poster_url
-                      ? <img src={m.poster_url} alt={m.title} style={{ width: 28, height: 42, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
-                      : <div style={{ width: 28, height: 42, borderRadius: 4, background: '#EEEDFE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, flexShrink: 0 }}>🎬</div>
-                    }
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.title}</div>
-                      <div style={{ fontSize: 11, color: '#aaa' }}>{m.year}</div>
-                    </div>
-                  </div>
-                ))}
+                )}
               </div>
             )
           })()}
-
         </div>
       )}
 
-      {/* Step 2 — Score */}
+      {/* ── Step 2 ── */}
       {step === 2 && selectedMovie && (
         <div style={{ background: '#fff', borderRadius: 12, border: '0.5px solid #eee', padding: 16 }}>
+
+          {isTMDB && (
+            <div style={{
+              fontSize: 11, color: '#534AB7', background: '#EEEDFE',
+              borderRadius: 8, padding: '6px 10px', marginBottom: 12
+            }}>
+              This film isn't in your catalog yet — it will be added when you submit your score.
+            </div>
+          )}
+
           <div style={{ display: 'flex', gap: 14, marginBottom: 20, paddingBottom: 16, borderBottom: '0.5px solid #f0f0f0' }}>
             {selectedMovie.poster_url
               ? <img src={selectedMovie.poster_url} alt={selectedMovie.title} style={{ width: 70, height: 105, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
@@ -328,20 +440,22 @@ export default function LogScore() {
             disabled={submitting}
             style={{ width: '100%', padding: 10, borderRadius: 8, border: 'none', background: '#534AB7', color: '#fff', fontSize: 13, fontWeight: 500, cursor: 'pointer', marginBottom: 8 }}
           >
-            {submitting ? 'Saving...' : existingScore ? 'Update score' : 'Submit score'}
+            {submitting ? (isTMDB ? 'Adding to catalog…' : 'Saving...') : existingScore ? 'Update score' : 'Submit score'}
           </button>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={() => setStep(1)} style={{ flex: 1, padding: 8, borderRadius: 8, border: '0.5px solid #ddd', background: 'transparent', fontSize: 12, color: '#666', cursor: 'pointer' }}>
+            <button onClick={() => { setStep(1); setIsTMDB(false) }} style={{ flex: 1, padding: 8, borderRadius: 8, border: '0.5px solid #ddd', background: 'transparent', fontSize: 12, color: '#666', cursor: 'pointer' }}>
               ← Back
             </button>
-            <button onClick={handleSkip} style={{ flex: 1, padding: 8, borderRadius: 8, border: '0.5px solid #ddd', background: 'transparent', fontSize: 12, color: '#993C1D', cursor: 'pointer' }}>
-              Mark as skipped
-            </button>
+            {!isTMDB && (
+              <button onClick={handleSkip} style={{ flex: 1, padding: 8, borderRadius: 8, border: '0.5px solid #ddd', background: 'transparent', fontSize: 12, color: '#993C1D', cursor: 'pointer' }}>
+                Mark as skipped
+              </button>
+            )}
           </div>
         </div>
       )}
 
-      {/* Step 3 — Success */}
+      {/* ── Step 3 ── */}
       {step === 3 && (
         <div style={{ background: '#fff', borderRadius: 12, border: '0.5px solid #eee', padding: 32, textAlign: 'center' }}>
           <div style={{ fontSize: 40, marginBottom: 12 }}>✅</div>
@@ -353,7 +467,7 @@ export default function LogScore() {
             <button onClick={() => navigate(`/movie/${selectedMovie?.id}`)} style={{ fontSize: 12, padding: '7px 16px', borderRadius: 8, border: 'none', background: '#534AB7', color: '#fff', cursor: 'pointer' }}>
               View film page
             </button>
-            <button onClick={() => { setStep(1); setSelectedMovie(null); setScore(7.0); setNotes(''); setWatchDate('') }} style={{ fontSize: 12, padding: '7px 16px', borderRadius: 8, border: '0.5px solid #ddd', background: 'transparent', color: '#666', cursor: 'pointer' }}>
+            <button onClick={() => { setStep(1); setSelectedMovie(null); setIsTMDB(false); setScore(7.0); setNotes(''); setWatchDate('') }} style={{ fontSize: 12, padding: '7px 16px', borderRadius: 8, border: '0.5px solid #ddd', background: 'transparent', color: '#666', cursor: 'pointer' }}>
               Log another film
             </button>
             <button onClick={() => navigate('/')} style={{ fontSize: 12, padding: '7px 16px', borderRadius: 8, border: '0.5px solid #ddd', background: 'transparent', color: '#666', cursor: 'pointer' }}>
