@@ -10,7 +10,7 @@ export default function LogScore() {
 
   const [step, setStep] = useState(prefilledId ? 2 : 1)
   const [query, setQuery] = useState('')
-  const [score, setScore] = useState(7.0)
+  const [score, setScore] = useState(5.0)
   const [notes, setNotes] = useState('')
   const [watchDate, setWatchDate] = useState('')
   const [showOptional, setShowOptional] = useState(false)
@@ -467,7 +467,7 @@ export default function LogScore() {
             <button onClick={() => navigate(`/movie/${selectedMovie?.id}`)} style={{ fontSize: 12, padding: '7px 16px', borderRadius: 8, border: 'none', background: '#534AB7', color: '#fff', cursor: 'pointer' }}>
               View film page
             </button>
-            <button onClick={() => { setStep(1); setSelectedMovie(null); setIsTMDB(false); setScore(7.0); setNotes(''); setWatchDate('') }} style={{ fontSize: 12, padding: '7px 16px', borderRadius: 8, border: '0.5px solid #ddd', background: 'transparent', color: '#666', cursor: 'pointer' }}>
+            <button onClick={() => { setStep(1); setSelectedMovie(null); setIsTMDB(false); setScore(5.0); setNotes(''); setWatchDate('') }} style={{ fontSize: 12, padding: '7px 16px', borderRadius: 8, border: '0.5px solid #ddd', background: 'transparent', color: '#666', cursor: 'pointer' }}>
               Log another film
             </button>
             <button onClick={() => navigate('/')} style={{ fontSize: 12, padding: '7px 16px', borderRadius: 8, border: '0.5px solid #ddd', background: 'transparent', color: '#666', cursor: 'pointer' }}>
