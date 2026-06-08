@@ -1,30 +1,30 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { ThumbsUp, ThumbsDown, Trash2 } from 'lucide-react'
+import { ThumbsUp, ThumbsDown, Trash2, Shield } from 'lucide-react'
 
-// Parse @mentions out of comment body, return array of username strings
 function parseMentions(body) {
   const matches = body.match(/@(\w+)/g) || []
   return [...new Set(matches.map(m => m.slice(1).toLowerCase()))]
 }
 
-// Render comment body with highlighted @mentions
 function CommentBody({ body }) {
   const parts = body.split(/(@\w+)/g)
   return (
     <span>
       {parts.map((part, i) =>
         part.startsWith('@') ? (
-          <span key={i} style={{
-            color: '#534AB7', fontWeight: 500,
-            background: '#EEEDFE', borderRadius: 3,
-            padding: '0 2px'
-          }}>{part}</span>
+          <span key={i} style={{ color: '#534AB7', fontWeight: 500, background: '#EEEDFE', borderRadius: 3, padding: '0 2px' }}>{part}</span>
         ) : part
       )}
     </span>
   )
+}
+
+function scoreColor(s) {
+  if (s >= 8) return '#0F6E56'
+  if (s >= 6.5) return '#534AB7'
+  return '#993C1D'
 }
 
 export default function MovieDetail() {
@@ -38,27 +38,33 @@ export default function MovieDetail() {
   const [lightbox, setLightbox] = useState(false)
   const [allUsers, setAllUsers] = useState([])
 
-  // comments
   const [comments, setComments] = useState([])
+  const [defenses, setDefenses] = useState([])
   const [myVotes, setMyVotes] = useState({})
-  const [commentSort, setCommentSort] = useState('top')
+  const [commentSort, setCommentSort] = useState('new')
   const [commentBody, setCommentBody] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  // @mention picker
-  const [mentionQuery, setMentionQuery] = useState(null) // null = closed, string = filter
+  const [mentionQuery, setMentionQuery] = useState(null)
   const [mentionIndex, setMentionIndex] = useState(0)
   const textareaRef = useRef(null)
 
-  const loadComments = useCallback(async (uid) => {
+  const loadFeed = useCallback(async (uid) => {
+    // comments
     const { data: commentData } = await supabase
       .from('comments')
-      .select('*, users(username)')
+      .select('*, users(username, id)')
       .eq('movie_id', id)
       .order('created_at', { ascending: false })
 
-    if (!commentData) return
+    // defenses for this movie (circle = everyone for now)
+    const { data: defenseData } = await supabase
+      .from('defenses')
+      .select('*, users(username, id)')
+      .eq('movie_id', id)
+      .order('created_at', { ascending: false })
 
+    // vote tallies
     const { data: myVoteData } = await supabase
       .from('comment_votes')
       .select('comment_id, vote')
@@ -69,23 +75,40 @@ export default function MovieDetail() {
       .select('comment_id, vote')
 
     const totals = {}
-    if (allVotes) {
-      allVotes.forEach(v => {
-        totals[v.comment_id] = (totals[v.comment_id] || 0) + v.vote
-      })
-    }
+    if (allVotes) allVotes.forEach(v => {
+      totals[v.comment_id] = (totals[v.comment_id] || 0) + v.vote
+    })
 
     const myVoteMap = {}
-    if (myVoteData) {
-      myVoteData.forEach(v => { myVoteMap[v.comment_id] = v.vote })
-    }
+    if (myVoteData) myVoteData.forEach(v => { myVoteMap[v.comment_id] = v.vote })
 
-    const enriched = commentData.map(c => ({
+    const enrichedComments = (commentData || []).map(c => ({
       ...c,
+      type: 'comment',
       netVotes: totals[c.id] || 0
     }))
 
-    setComments(enriched)
+    // attach the author's score to each defense
+    const defenseUserIds = (defenseData || []).map(d => d.user_id)
+    let scoreMap = {}
+    if (defenseUserIds.length > 0) {
+      const { data: scoreRows } = await supabase
+        .from('scores')
+        .select('user_id, score')
+        .eq('movie_id', id)
+        .in('user_id', defenseUserIds)
+      if (scoreRows) scoreRows.forEach(r => { scoreMap[r.user_id] = parseFloat(r.score) })
+    }
+
+    const enrichedDefenses = (defenseData || []).map(d => ({
+      ...d,
+      type: 'defense',
+      netVotes: 0, // defenses don't participate in voting
+      authorScore: scoreMap[d.user_id] ?? null
+    }))
+
+    setComments(enrichedComments)
+    setDefenses(enrichedDefenses)
     setMyVotes(myVoteMap)
   }, [id])
 
@@ -96,11 +119,7 @@ export default function MovieDetail() {
       if (uid) setUserId(uid)
 
       const { data: movieData } = await supabase
-        .from('movies')
-        .select('*')
-        .eq('id', id)
-        .single()
-
+        .from('movies').select('*').eq('id', id).single()
       if (!movieData) { navigate('/'); return }
       setMovie(movieData)
 
@@ -109,31 +128,21 @@ export default function MovieDetail() {
         .select('*, users(username, id)')
         .eq('movie_id', id)
         .eq('status', 'scored')
-
       if (scoreData) {
         setScores(scoreData)
         const mine = scoreData.find(s => s.user_id === uid)
         if (mine) setMyScore(parseFloat(mine.score))
       }
 
-      // load all users for @mention picker
       const { data: userData } = await supabase
-        .from('users')
-        .select('id, username')
-        .order('username')
+        .from('users').select('id, username').order('username')
       if (userData) setAllUsers(userData)
 
-      await loadComments(uid)
+      await loadFeed(uid)
       setLoading(false)
     }
     load()
-  }, [id, loadComments])
-
-  function scoreColor(s) {
-    if (s >= 8) return '#0F6E56'
-    if (s >= 6.5) return '#534AB7'
-    return '#993C1D'
-  }
+  }, [id, loadFeed])
 
   function timeAgo(ts) {
     const diff = Date.now() - new Date(ts).getTime()
@@ -147,45 +156,24 @@ export default function MovieDetail() {
     return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
   }
 
-  // Detect @mention trigger as user types
   function handleCommentChange(e) {
     const val = e.target.value
     if (val.length > 140) return
     setCommentBody(val)
-
-    // Find if cursor is inside an @word
     const cursor = e.target.selectionStart
     const textUpToCursor = val.slice(0, cursor)
     const match = textUpToCursor.match(/@(\w*)$/)
-    if (match) {
-      setMentionQuery(match[1].toLowerCase())
-      setMentionIndex(0)
-    } else {
-      setMentionQuery(null)
-    }
+    if (match) { setMentionQuery(match[1].toLowerCase()); setMentionIndex(0) }
+    else setMentionQuery(null)
   }
 
   function handleCommentKeyDown(e) {
     if (mentionQuery === null) return
-
-    const filtered = allUsers.filter(u =>
-      u.username.toLowerCase().startsWith(mentionQuery)
-    )
-
-    if (e.key === 'ArrowDown') {
-      e.preventDefault()
-      setMentionIndex(i => Math.min(i + 1, filtered.length - 1))
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault()
-      setMentionIndex(i => Math.max(i - 1, 0))
-    } else if (e.key === 'Enter' || e.key === 'Tab') {
-      if (filtered.length > 0) {
-        e.preventDefault()
-        insertMention(filtered[mentionIndex].username)
-      }
-    } else if (e.key === 'Escape') {
-      setMentionQuery(null)
-    }
+    const filtered = allUsers.filter(u => u.username.toLowerCase().startsWith(mentionQuery))
+    if (e.key === 'ArrowDown') { e.preventDefault(); setMentionIndex(i => Math.min(i + 1, filtered.length - 1)) }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setMentionIndex(i => Math.max(i - 1, 0)) }
+    else if (e.key === 'Enter' || e.key === 'Tab') { if (filtered.length > 0) { e.preventDefault(); insertMention(filtered[mentionIndex].username) } }
+    else if (e.key === 'Escape') setMentionQuery(null)
   }
 
   function insertMention(username) {
@@ -196,8 +184,6 @@ export default function MovieDetail() {
     const newBody = (before + after).slice(0, 140)
     setCommentBody(newBody)
     setMentionQuery(null)
-
-    // restore focus and move cursor to after the inserted mention
     setTimeout(() => {
       if (textareaRef.current) {
         textareaRef.current.focus()
@@ -215,42 +201,33 @@ export default function MovieDetail() {
     if (!userId) return
     const current = myVotes[commentId]
     if (current === direction) {
-      await supabase.from('comment_votes')
-        .delete()
-        .eq('comment_id', commentId)
-        .eq('user_id', userId)
+      await supabase.from('comment_votes').delete().eq('comment_id', commentId).eq('user_id', userId)
     } else {
-      await supabase.from('comment_votes')
-        .upsert(
-          { comment_id: commentId, user_id: userId, vote: direction },
-          { onConflict: 'comment_id,user_id' }
-        )
+      await supabase.from('comment_votes').upsert(
+        { comment_id: commentId, user_id: userId, vote: direction },
+        { onConflict: 'comment_id,user_id' }
+      )
     }
-    await loadComments(userId)
+    await loadFeed(userId)
   }
 
   async function handleDelete(commentId) {
     await supabase.from('comments').delete().eq('id', commentId)
-    await loadComments(userId)
+    await loadFeed(userId)
   }
 
   async function handleSubmit() {
     if (!commentBody.trim() || !userId) return
     setSubmitting(true)
-
     const { data: inserted } = await supabase
       .from('comments')
       .insert({ movie_id: id, user_id: userId, body: commentBody.trim() })
-      .select()
-      .single()
+      .select().single()
 
-    // write mentions to comment_mentions for future notification use
     if (inserted) {
       const mentionedUsernames = parseMentions(commentBody)
       if (mentionedUsernames.length > 0) {
-        const mentionedUsers = allUsers.filter(u =>
-          mentionedUsernames.includes(u.username.toLowerCase())
-        )
+        const mentionedUsers = allUsers.filter(u => mentionedUsernames.includes(u.username.toLowerCase()))
         if (mentionedUsers.length > 0) {
           await supabase.from('comment_mentions').insert(
             mentionedUsers.map(u => ({
@@ -264,18 +241,20 @@ export default function MovieDetail() {
         }
       }
     }
-
     setCommentBody('')
-    await loadComments(userId)
+    await loadFeed(userId)
     setSubmitting(false)
   }
 
-  const sortedComments = [...comments].sort((a, b) => {
+  // merge comments + defenses into one sorted feed
+  const allFeedItems = [...comments, ...defenses].sort((a, b) => {
     if (commentSort === 'top') {
       return b.netVotes - a.netVotes || new Date(b.created_at) - new Date(a.created_at)
     }
     return new Date(b.created_at) - new Date(a.created_at)
   })
+
+  const totalFeedCount = comments.length + defenses.length
 
   if (loading) return <div style={{ padding: 20 }}>Loading...</div>
   if (!movie) return <div style={{ padding: 20 }}>Movie not found</div>
@@ -327,8 +306,7 @@ export default function MovieDetail() {
       `}</style>
 
       <button onClick={() => navigate(-1)} style={{
-        fontSize: 12, color: '#666', background: 'none', border: 'none',
-        cursor: 'pointer', marginBottom: 16, padding: 0
+        fontSize: 12, color: '#666', background: 'none', border: 'none', cursor: 'pointer', marginBottom: 16, padding: 0
       }}>← Back</button>
 
       {/* Hero */}
@@ -395,11 +373,7 @@ export default function MovieDetail() {
               <div key={bucket} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                 <div style={{ fontSize: 10, color: '#888', width: 28, textAlign: 'right', flexShrink: 0 }}>{bucket}</div>
                 <div style={{ flex: 1, height: 16, background: '#f5f5f5', borderRadius: 3, overflow: 'hidden' }}>
-                  <div style={{
-                    width: `${(count / maxCount) * 100}%`, height: '100%',
-                    background: isMe ? '#0F6E56' : '#534AB7', borderRadius: 3,
-                    minWidth: count > 0 ? 4 : 0
-                  }} />
+                  <div style={{ width: `${(count / maxCount) * 100}%`, height: '100%', background: isMe ? '#0F6E56' : '#534AB7', borderRadius: 3, minWidth: count > 0 ? 4 : 0 }} />
                 </div>
                 <div style={{ fontSize: 10, color: '#888', width: 16, flexShrink: 0 }}>{count}</div>
               </div>
@@ -422,15 +396,8 @@ export default function MovieDetail() {
           {scores
             .sort((a, b) => parseFloat(b.score) - parseFloat(a.score))
             .map(s => (
-              <div key={s.id} style={{
-                display: 'flex', alignItems: 'center', gap: 10,
-                padding: '6px 0', borderBottom: '0.5px solid #f0f0f0'
-              }}>
-                <div style={{
-                  width: 28, height: 28, borderRadius: '50%', background: '#EEEDFE',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 10, fontWeight: 500, color: '#534AB7', flexShrink: 0
-                }}>
+              <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0', borderBottom: '0.5px solid #f0f0f0' }}>
+                <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#EEEDFE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 500, color: '#534AB7', flexShrink: 0 }}>
                   {s.users?.username?.slice(0, 2).toUpperCase()}
                 </div>
                 <div style={{ flex: 1, fontSize: 13, fontWeight: s.user_id === userId ? 500 : 400 }}>
@@ -444,13 +411,13 @@ export default function MovieDetail() {
         </div>
       </div>
 
-      {/* Comment feed */}
+      {/* Unified feed */}
       <div style={{ background: '#fff', borderRadius: 12, border: '0.5px solid #eee', padding: 16, marginTop: 14 }}>
 
         {/* Header + sort */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
           <div style={{ fontSize: 13, fontWeight: 500 }}>
-            Comments {comments.length > 0 && <span style={{ color: '#888', fontWeight: 400 }}>({comments.length})</span>}
+            Discussion {totalFeedCount > 0 && <span style={{ color: '#888', fontWeight: 400 }}>({totalFeedCount})</span>}
           </div>
           <div style={{ display: 'flex', gap: 6 }}>
             <button className={`sort-pill${commentSort === 'top' ? ' active' : ''}`} onClick={() => setCommentSort('top')}>Top</button>
@@ -475,8 +442,6 @@ export default function MovieDetail() {
                 fontFamily: 'inherit', outline: 'none', lineHeight: 1.5
               }}
             />
-
-            {/* @mention dropdown */}
             {mentionQuery !== null && filteredMentions.length > 0 && (
               <div style={{
                 position: 'absolute', bottom: '100%', left: 0,
@@ -486,16 +451,11 @@ export default function MovieDetail() {
                 zIndex: 100, marginBottom: 4
               }}>
                 {filteredMentions.map((u, i) => (
-                  <div
-                    key={u.id}
+                  <div key={u.id}
                     className={`mention-item${i === mentionIndex ? ' selected' : ''}`}
                     onMouseDown={e => { e.preventDefault(); insertMention(u.username) }}
                   >
-                    <div style={{
-                      width: 22, height: 22, borderRadius: '50%', background: '#EEEDFE',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 9, fontWeight: 500, color: '#534AB7', flexShrink: 0
-                    }}>
+                    <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#EEEDFE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 500, color: '#534AB7', flexShrink: 0 }}>
                       {u.username.slice(0, 2).toUpperCase()}
                     </div>
                     <span style={{ color: '#534AB7', fontWeight: 500 }}>@{u.username}</span>
@@ -503,7 +463,6 @@ export default function MovieDetail() {
                 ))}
               </div>
             )}
-
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
               <span style={{ fontSize: 11, color: charsLeftColor }}>{charsLeft} left</span>
               <button
@@ -525,52 +484,89 @@ export default function MovieDetail() {
         )}
 
         {/* Feed */}
-        {sortedComments.length === 0 ? (
+        {allFeedItems.length === 0 ? (
           <div style={{ fontSize: 12, color: '#aaa', textAlign: 'center', padding: '20px 0' }}>
-            No comments yet. Be the first.
+            No discussion yet. Be the first.
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {sortedComments.map((c, i) => {
-              const isMe = c.user_id === userId
-              const myVote = myVotes[c.id]
+            {allFeedItems.map((item, i) => {
+              const isLast = i === allFeedItems.length - 1
+              const isMe = item.user_id === userId
+
+              if (item.type === 'defense') {
+                return (
+                  <div key={`defense-${item.id}`} style={{
+                    padding: '10px 0',
+                    borderBottom: isLast ? 'none' : '0.5px solid #f0f0f0',
+                    display: 'flex', gap: 10, alignItems: 'flex-start'
+                  }}>
+                    {/* Defense accent bar */}
+                    <div style={{ width: 3, borderRadius: 2, background: '#534AB7', alignSelf: 'stretch', flexShrink: 0, minHeight: 40 }} />
+
+                    <div style={{ width: 28, height: 28, borderRadius: '50%', background: isMe ? '#EEEDFE' : '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 500, color: isMe ? '#534AB7' : '#666', flexShrink: 0 }}>
+                      {item.users?.username?.slice(0, 2).toUpperCase()}
+                    </div>
+
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3, flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: 12, fontWeight: 500 }}>{item.users?.username}</span>
+                        {isMe && <span style={{ fontSize: 10, color: '#888' }}>(you)</span>}
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 10, color: '#534AB7', background: '#EEEDFE', padding: '1px 6px', borderRadius: 20 }}>
+                          <Shield size={9} /> defending
+                          {item.authorScore !== null && <span style={{ fontWeight: 600, color: scoreColor(item.authorScore) }}> · {item.authorScore.toFixed(1)}</span>}
+                        </span>
+                        <span style={{ fontSize: 10, color: '#bbb' }}>{timeAgo(item.created_at)}</span>
+                      </div>
+                      <div style={{ fontSize: 13, color: '#333', lineHeight: 1.45, wordBreak: 'break-word' }}>
+                        {item.body}
+                      </div>
+                      <div style={{ marginTop: 5 }}>
+                        <button
+                          onClick={() => navigate(`/defend`)}
+                          style={{ fontSize: 10, color: '#888', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                        >
+                          View thread →
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )
+              }
+
+              // regular comment
+              const myVote = myVotes[item.id]
               return (
-                <div key={c.id} style={{
+                <div key={`comment-${item.id}`} style={{
                   padding: '10px 0',
-                  borderBottom: i < sortedComments.length - 1 ? '0.5px solid #f0f0f0' : 'none',
+                  borderBottom: isLast ? 'none' : '0.5px solid #f0f0f0',
                   display: 'flex', gap: 10, alignItems: 'flex-start'
                 }}>
-                  <div style={{
-                    width: 28, height: 28, borderRadius: '50%',
-                    background: isMe ? '#EEEDFE' : '#f5f5f5',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 10, fontWeight: 500,
-                    color: isMe ? '#534AB7' : '#666', flexShrink: 0
-                  }}>
-                    {c.users?.username?.slice(0, 2).toUpperCase()}
+                  <div style={{ width: 28, height: 28, borderRadius: '50%', background: isMe ? '#EEEDFE' : '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 500, color: isMe ? '#534AB7' : '#666', flexShrink: 0 }}>
+                    {item.users?.username?.slice(0, 2).toUpperCase()}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 3, flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: 12, fontWeight: 500 }}>{c.users?.username}</span>
+                      <span style={{ fontSize: 12, fontWeight: 500 }}>{item.users?.username}</span>
                       {isMe && <span style={{ fontSize: 10, color: '#888' }}>(you)</span>}
-                      <span style={{ fontSize: 10, color: '#bbb' }}>{timeAgo(c.created_at)}</span>
+                      <span style={{ fontSize: 10, color: '#bbb' }}>{timeAgo(item.created_at)}</span>
                     </div>
                     <div style={{ fontSize: 13, color: '#333', lineHeight: 1.45, wordBreak: 'break-word' }}>
-                      <CommentBody body={c.body} />
+                      <CommentBody body={item.body} />
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginTop: 6 }}>
-                      <button className="comment-vote-btn" onClick={() => handleVote(c.id, 1)}
+                      <button className="comment-vote-btn" onClick={() => handleVote(item.id, 1)}
                         style={{ color: myVote === 1 ? '#534AB7' : '#888' }} title="Upvote">
                         <ThumbsUp size={12} />
-                        {c.netVotes > 0 && <span>{c.netVotes}</span>}
+                        {item.netVotes > 0 && <span>{item.netVotes}</span>}
                       </button>
-                      <button className="comment-vote-btn" onClick={() => handleVote(c.id, -1)}
+                      <button className="comment-vote-btn" onClick={() => handleVote(item.id, -1)}
                         style={{ color: myVote === -1 ? '#993C1D' : '#888' }} title="Downvote">
                         <ThumbsDown size={12} />
-                        {c.netVotes < 0 && <span>{Math.abs(c.netVotes)}</span>}
+                        {item.netVotes < 0 && <span>{Math.abs(item.netVotes)}</span>}
                       </button>
                       {isMe && (
-                        <button className="comment-vote-btn" onClick={() => handleDelete(c.id)}
+                        <button className="comment-vote-btn" onClick={() => handleDelete(item.id)}
                           style={{ color: '#ccc', marginLeft: 4 }} title="Delete comment">
                           <Trash2 size={12} />
                         </button>
