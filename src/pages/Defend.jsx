@@ -2,6 +2,71 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 
+function scoreColor(s) {
+  if (s >= 8) return '#0F6E56'
+  if (s >= 6.5) return '#534AB7'
+  return '#993C1D'
+}
+
+// Defined outside Defend so it never remounts on parent state changes
+function OutlierRow({ o, defendedIds, writing, draftText, setDraftText, setWriting, onSubmitDefense, submitting }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 0', borderBottom: '0.5px solid #f0f0f0' }}>
+      {o.poster_url
+        ? <img src={o.poster_url} alt={o.title} onClick={() => window.location.href = `/movie/${o.movie_id}`}
+            style={{ width: 32, height: 48, borderRadius: 4, objectFit: 'cover', flexShrink: 0, cursor: 'pointer' }} />
+        : <div onClick={() => window.location.href = `/movie/${o.movie_id}`}
+            style={{ width: 32, height: 48, borderRadius: 4, background: '#FAECE7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0, cursor: 'pointer' }}>🎬</div>
+      }
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div onClick={() => window.location.href = `/movie/${o.movie_id}`}
+          style={{ fontSize: 12, fontWeight: 500, marginBottom: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'pointer' }}>
+          {o.title}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 11, fontWeight: 500, color: scoreColor(o.my_score) }}>You {parseFloat(o.my_score).toFixed(1)}</span>
+          <span style={{ fontSize: 10, color: '#aaa' }}>vs</span>
+          <span style={{ fontSize: 11, color: '#666' }}>Group {parseFloat(o.group_avg).toFixed(1)}</span>
+          <span style={{ fontSize: 10, fontWeight: 500, padding: '1px 6px', borderRadius: 20,
+            background: o.direction === 'above' ? '#E1F5EE' : '#FAECE7',
+            color: o.direction === 'above' ? '#0F6E56' : '#993C1D' }}>
+            {o.direction === 'above' ? '+' : '−'}{parseFloat(o.diff).toFixed(1)}
+          </span>
+        </div>
+        {defendedIds.has(o.movie_id)
+          ? <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 20, background: '#E1F5EE', color: '#0F6E56', fontWeight: 500 }}>✓ Defense written</span>
+          : writing === o.movie_id
+            ? (
+              <div>
+                <textarea
+                  autoFocus
+                  value={draftText}
+                  onChange={e => setDraftText(e.target.value)}
+                  placeholder="Make your case..."
+                  rows={3}
+                  style={{ width: '100%', fontSize: 11, padding: '6px 8px', borderRadius: 8, border: '0.5px solid #ddd', resize: 'none', fontFamily: 'inherit', marginBottom: 6, boxSizing: 'border-box' }}
+                />
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button onClick={() => onSubmitDefense(o.movie_id)} disabled={submitting}
+                    style={{ fontSize: 11, padding: '4px 12px', borderRadius: 8, border: 'none', background: '#534AB7', color: '#fff', cursor: 'pointer' }}>Post</button>
+                  <button onClick={() => { setWriting(null); setDraftText('') }}
+                    style={{ fontSize: 11, padding: '4px 10px', borderRadius: 8, border: '0.5px solid #ddd', background: 'transparent', color: '#666', cursor: 'pointer' }}>Cancel</button>
+                </div>
+              </div>
+            )
+            : (
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button onClick={() => { setWriting(o.movie_id); setDraftText('') }}
+                  style={{ fontSize: 11, padding: '3px 10px', borderRadius: 8, border: 'none', background: '#534AB7', color: '#fff', cursor: 'pointer' }}>Write defense</button>
+                <button style={{ fontSize: 11, padding: '3px 10px', borderRadius: 8, border: '0.5px solid #ddd', background: 'transparent', color: '#888', cursor: 'pointer' }}>Dismiss</button>
+              </div>
+            )
+        }
+      </div>
+    </div>
+  )
+}
+
 export default function Defend() {
   const navigate = useNavigate()
   const [userId, setUserId] = useState(null)
@@ -84,62 +149,11 @@ export default function Defend() {
     setSubmitting(false)
   }
 
-  function scoreColor(s) {
-    if (s >= 8) return '#0F6E56'
-    if (s >= 6.5) return '#534AB7'
-    return '#993C1D'
-  }
-
   const above = outliers.filter(o => o.direction === 'above').slice(0, 10)
   const below = outliers.filter(o => o.direction === 'below').slice(0, 10)
   const defendedIds = new Set(myDefenses.map(d => d.movie_id))
 
   if (loading) return <div style={{ padding: 20 }}>Loading...</div>
-
-  const OutlierRow = ({ o }) => (
-    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 0', borderBottom: '0.5px solid #f0f0f0' }}>
-      {o.poster_url
-        ? <img src={o.poster_url} alt={o.title} onClick={() => navigate(`/movie/${o.movie_id}`)} style={{ width: 32, height: 48, borderRadius: 4, objectFit: 'cover', flexShrink: 0, cursor: 'pointer' }} />
-        : <div onClick={() => navigate(`/movie/${o.movie_id}`)} style={{ width: 32, height: 48, borderRadius: 4, background: '#FAECE7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0, cursor: 'pointer' }}>🎬</div>
-      }
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div onClick={() => navigate(`/movie/${o.movie_id}`)} style={{ fontSize: 12, fontWeight: 500, marginBottom: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'pointer' }}>{o.title}</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 11, fontWeight: 500, color: scoreColor(o.my_score) }}>You {parseFloat(o.my_score).toFixed(1)}</span>
-          <span style={{ fontSize: 10, color: '#aaa' }}>vs</span>
-          <span style={{ fontSize: 11, color: '#666' }}>Group {parseFloat(o.group_avg).toFixed(1)}</span>
-          <span style={{ fontSize: 10, fontWeight: 500, padding: '1px 6px', borderRadius: 20, background: o.direction === 'above' ? '#E1F5EE' : '#FAECE7', color: o.direction === 'above' ? '#0F6E56' : '#993C1D' }}>
-            {o.direction === 'above' ? '+' : '−'}{parseFloat(o.diff).toFixed(1)}
-          </span>
-        </div>
-        {defendedIds.has(o.movie_id)
-          ? <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 20, background: '#E1F5EE', color: '#0F6E56', fontWeight: 500 }}>✓ Defense written</span>
-          : writing === o.movie_id
-            ? (
-              <div>
-                <textarea
-                  value={draftText}
-                  onChange={e => setDraftText(e.target.value)}
-                  placeholder="Make your case..."
-                  rows={3}
-                  style={{ width: '100%', fontSize: 11, padding: '6px 8px', borderRadius: 8, border: '0.5px solid #ddd', resize: 'none', fontFamily: 'inherit', marginBottom: 6 }}
-                />
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <button onClick={() => submitDefense(o.movie_id)} disabled={submitting} style={{ fontSize: 11, padding: '4px 12px', borderRadius: 8, border: 'none', background: '#534AB7', color: '#fff', cursor: 'pointer' }}>Post</button>
-                  <button onClick={() => { setWriting(null); setDraftText('') }} style={{ fontSize: 11, padding: '4px 10px', borderRadius: 8, border: '0.5px solid #ddd', background: 'transparent', color: '#666', cursor: 'pointer' }}>Cancel</button>
-                </div>
-              </div>
-            )
-            : (
-              <div style={{ display: 'flex', gap: 6 }}>
-                <button onClick={() => { setWriting(o.movie_id); setDraftText('') }} style={{ fontSize: 11, padding: '3px 10px', borderRadius: 8, border: 'none', background: '#534AB7', color: '#fff', cursor: 'pointer' }}>Write defense</button>
-                <button style={{ fontSize: 11, padding: '3px 10px', borderRadius: 8, border: '0.5px solid #ddd', background: 'transparent', color: '#888', cursor: 'pointer' }}>Dismiss</button>
-              </div>
-            )
-        }
-      </div>
-    </div>
-  )
 
   return (
     <div style={{ padding: 20, maxWidth: 1100, margin: '0 auto' }}>
@@ -151,9 +165,7 @@ export default function Defend() {
           margin-bottom: 20px;
         }
         @media (max-width: 768px) {
-          .outlier-grid {
-            grid-template-columns: 1fr;
-          }
+          .outlier-grid { grid-template-columns: 1fr; }
         }
       `}</style>
 
@@ -167,7 +179,19 @@ export default function Defend() {
             <span style={{ fontSize: 11, color: '#888', fontWeight: 400, marginLeft: 6 }}>≥1.5 below avg</span>
           </div>
           {below.length === 0 && <div style={{ fontSize: 12, color: '#888' }}>No outliers here</div>}
-          {below.map(o => <OutlierRow key={o.movie_id} o={o} />)}
+          {below.map(o => (
+            <OutlierRow
+              key={o.movie_id}
+              o={o}
+              defendedIds={defendedIds}
+              writing={writing}
+              draftText={draftText}
+              setDraftText={setDraftText}
+              setWriting={setWriting}
+              onSubmitDefense={submitDefense}
+              submitting={submitting}
+            />
+          ))}
         </div>
 
         <div style={{ background: '#fff', borderRadius: 12, border: '0.5px solid #eee', padding: 16 }}>
@@ -176,7 +200,19 @@ export default function Defend() {
             <span style={{ fontSize: 11, color: '#888', fontWeight: 400, marginLeft: 6 }}>≥1.5 above avg</span>
           </div>
           {above.length === 0 && <div style={{ fontSize: 12, color: '#888' }}>No outliers here</div>}
-          {above.map(o => <OutlierRow key={o.movie_id} o={o} />)}
+          {above.map(o => (
+            <OutlierRow
+              key={o.movie_id}
+              o={o}
+              defendedIds={defendedIds}
+              writing={writing}
+              draftText={draftText}
+              setDraftText={setDraftText}
+              setWriting={setWriting}
+              onSubmitDefense={submitDefense}
+              submitting={submitting}
+            />
+          ))}
         </div>
       </div>
 
@@ -187,7 +223,8 @@ export default function Defend() {
             <div key={d.id} style={{ background: '#fff', borderRadius: 12, border: '0.5px solid #eee', padding: 16, marginBottom: 10 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, paddingBottom: 12, borderBottom: '0.5px solid #f0f0f0' }}>
                 {d.movies?.poster_url
-                  ? <img src={d.movies.poster_url} alt={d.movies.title} onClick={() => navigate(`/movie/${d.movie_id}`)} style={{ width: 32, height: 48, borderRadius: 4, objectFit: 'cover', flexShrink: 0, cursor: 'pointer' }} />
+                  ? <img src={d.movies.poster_url} alt={d.movies.title} onClick={() => navigate(`/movie/${d.movie_id}`)}
+                      style={{ width: 32, height: 48, borderRadius: 4, objectFit: 'cover', flexShrink: 0, cursor: 'pointer' }} />
                   : <div style={{ width: 32, height: 48, borderRadius: 4, background: '#EEEDFE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>🎬</div>
                 }
                 <div style={{ flex: 1 }}>
@@ -225,7 +262,8 @@ export default function Defend() {
                   style={{ flex: 1, fontSize: 12, padding: '6px 10px', borderRadius: 8, border: '0.5px solid #ddd', background: '#f9f9f9' }}
                   onKeyDown={e => { if (e.key === 'Enter') submitReply(d.id) }}
                 />
-                <button onClick={() => submitReply(d.id)} disabled={submitting} style={{ fontSize: 11, padding: '6px 12px', borderRadius: 8, border: 'none', background: '#534AB7', color: '#fff', cursor: 'pointer' }}>Reply</button>
+                <button onClick={() => submitReply(d.id)} disabled={submitting}
+                  style={{ fontSize: 11, padding: '6px 12px', borderRadius: 8, border: 'none', background: '#534AB7', color: '#fff', cursor: 'pointer' }}>Reply</button>
               </div>
             </div>
           ))}
@@ -246,11 +284,14 @@ export default function Defend() {
                 {d.users?.username?.slice(0, 2).toUpperCase()}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 500 }}>{d.users?.username} is defending <strong onClick={() => navigate(`/movie/${d.movie_id}`)} style={{ cursor: 'pointer' }}>{d.movies?.title}</strong></div>
+                <div style={{ fontSize: 13, fontWeight: 500 }}>
+                  {d.users?.username} is defending <strong onClick={() => navigate(`/movie/${d.movie_id}`)} style={{ cursor: 'pointer' }}>{d.movies?.title}</strong>
+                </div>
                 <div style={{ fontSize: 11, color: '#888' }}>{d.movies?.year}</div>
               </div>
               {d.movies?.poster_url && (
-                <img src={d.movies.poster_url} alt={d.movies.title} onClick={() => navigate(`/movie/${d.movie_id}`)} style={{ width: 28, height: 42, borderRadius: 4, objectFit: 'cover', cursor: 'pointer', flexShrink: 0 }} />
+                <img src={d.movies.poster_url} alt={d.movies.title} onClick={() => navigate(`/movie/${d.movie_id}`)}
+                  style={{ width: 28, height: 42, borderRadius: 4, objectFit: 'cover', cursor: 'pointer', flexShrink: 0 }} />
               )}
             </div>
             <div style={{ fontSize: 12, color: '#444', lineHeight: 1.6, padding: '10px 12px', background: '#f9f9f9', borderRadius: 8, marginBottom: 10 }}>
@@ -276,7 +317,8 @@ export default function Defend() {
                 style={{ flex: 1, fontSize: 12, padding: '6px 10px', borderRadius: 8, border: '0.5px solid #ddd', background: '#f9f9f9' }}
                 onKeyDown={e => { if (e.key === 'Enter') submitReply(d.id) }}
               />
-              <button onClick={() => submitReply(d.id)} disabled={submitting} style={{ fontSize: 11, padding: '6px 12px', borderRadius: 8, border: 'none', background: '#EEEDFE', color: '#534AB7', cursor: 'pointer', fontWeight: 500 }}>Reply</button>
+              <button onClick={() => submitReply(d.id)} disabled={submitting}
+                style={{ fontSize: 11, padding: '6px 12px', borderRadius: 8, border: 'none', background: '#EEEDFE', color: '#534AB7', cursor: 'pointer', fontWeight: 500 }}>Reply</button>
             </div>
           </div>
         ))}
