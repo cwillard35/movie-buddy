@@ -231,7 +231,7 @@ export default function Explore() {
               <div style={{ fontSize: 11, color: '#888', marginTop: 4 }}>drag the slider or tap a score</div>
             </div>
             <input type="range" min="1" max="10" step="0.25" value={score} onChange={e => setScore(parseFloat(e.target.value))} style={{ width: '100%', marginBottom: 8 }} />
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#aaa', marginBottom: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#aaa', marginBottom: 12, paddingLeft: 6, paddingRight: 2 }}>
               {[1,2,3,4,5,6,7,8,9,10].map(n => <span key={n}>{n}</span>)}
             </div>
           </div>
