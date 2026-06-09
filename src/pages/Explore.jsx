@@ -233,7 +233,11 @@ export default function Explore() {
               <div style={{ fontSize: 11, color: '#888', marginTop: 4 }}>drag the slider or tap a score</div>
             </div>
             <input type="range" min="1" max="10" step="0.25" value={score} onChange={e => setScore(parseFloat(e.target.value))} style={{ width: '100%', marginBottom: 8 }} />
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#aaa', marginBottom: 12 }}><span>1.0</span><span>3.0</span><span>5.0</span><span>7.0</span><span>9.0</span><span>10.0</span></div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#aaa', marginBottom: 12 }}>
+              {[1,2,3,4,5,6,7,8,9,10].map(n => (
+                <span key={n}>{n}</span>
+              ))}
+            </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>{quickScores.map(s => <button key={s} onClick={() => setScore(s)} style={{ fontSize: 11, padding: '4px 9px', borderRadius: 8, border: '0.5px solid #ddd', cursor: 'pointer', background: score === s ? '#EEEDFE' : 'transparent', color: score === s ? '#534AB7' : '#666', fontWeight: score === s ? 500 : 400 }}>{s.toFixed(1)}</button>)}</div>
           </div>
           <div style={{ borderTop: '0.5px solid #f0f0f0', paddingTop: 14, marginBottom: 16 }}>
