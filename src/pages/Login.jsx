@@ -272,6 +272,7 @@ export default function Login() {
           min-height: 100vh;
           display: grid;
           grid-template-columns: 1fr 420px;
+          align-items: start;
           background: #0c0a14;
           color: #e8e4f0;
           font-family: 'DM Sans', system-ui, sans-serif;
@@ -387,6 +388,9 @@ export default function Login() {
           border-left: 1px solid #1f1b38;
           padding: 3rem 2.5rem;
           display: flex; flex-direction: column; justify-content: center;
+          position: sticky;
+          top: 0;
+          min-height: 100vh;
         }
         .mb-form-header { margin-bottom: 2rem; }
         .mb-form-title {
@@ -528,7 +532,7 @@ export default function Login() {
               ))}
               <span className="mb-preview-label">Live preview</span>
             </div>
-            <div className={`mb-preview-card${panelFading ? ' fading' : ''}`}>
+            <div className={`mb-preview-card${panelFading ? ' fading' : ''}`} style={{ minHeight: 380, overflow: 'hidden' }}>
               {panels[activePanel].component}
             </div>
             <div className="mb-preview-dots">
