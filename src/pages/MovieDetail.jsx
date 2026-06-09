@@ -66,18 +66,38 @@ function InsightPanel({ type, data, movie, myScore, onClose, navigate }) {
   }
 
   if (type === 'director') {
+    // inject current film into the list
+    const currentEntry = {
+      movie_id: movie.id,
+      movies: movie,
+      score: myScore,
+      status: myScore !== null ? 'scored' : null,
+      isCurrent: true
+    }
+    const allDir = [...data, currentEntry].sort((a, b) => {
+      if (a.score !== null && b.score !== null) return parseFloat(b.score) - parseFloat(a.score)
+      if (a.score !== null) return -1
+      if (b.score !== null) return 1
+      return a.movies.title.localeCompare(b.movies.title)
+    })
     return (
       <div style={{ marginTop: 10, padding: '10px 12px', background: '#f9f9f9', borderRadius: 8 }}>
-        <div style={{ fontSize: 11, fontWeight: 500, color: '#534AB7', marginBottom: 8 }}>Other films by {movie.director}</div>
+        <div style={{ fontSize: 11, fontWeight: 500, color: '#534AB7', marginBottom: 8 }}>Films by {movie.director}</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {data.map(s => (
-            <div key={s.movie_id} onClick={() => navigate(`/movie/${s.movie_id}`)} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+          {allDir.map(s => (
+            <div key={s.movie_id} onClick={() => navigate(`/movie/${s.movie_id}`)} style={{
+              display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer',
+              background: s.isCurrent ? '#EEEDFE' : 'transparent',
+              borderRadius: 6, padding: s.isCurrent ? '2px 4px' : '2px 4px',
+              margin: '0 -4px'
+            }}>
               {s.movies?.poster_url
                 ? <img src={s.movies.poster_url} alt={s.movies.title} style={{ width: 20, height: 30, borderRadius: 3, objectFit: 'cover', flexShrink: 0 }} />
                 : <div style={{ width: 20, height: 30, borderRadius: 3, background: '#EEEDFE', flexShrink: 0 }} />
               }
-              <div style={{ flex: 1, fontSize: 11, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {s.movies?.title} <span style={{ color: '#aaa' }}>({s.movies?.year})</span>
+              <div style={{ flex: 1, fontSize: 11, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: s.isCurrent ? 600 : 400, color: s.isCurrent ? '#534AB7' : '#333' }}>
+                {s.movies?.title} <span style={{ color: '#aaa', fontWeight: 400 }}>({s.movies?.year})</span>
+                {s.isCurrent && <span style={{ fontSize: 9, color: '#534AB7', marginLeft: 4 }}>← this film</span>}
               </div>
               {s.score !== null
                 ? <div style={{ fontSize: 11, fontWeight: 500, color: scoreColor(parseFloat(s.score)), flexShrink: 0 }}>{parseFloat(s.score).toFixed(1)}</div>
@@ -91,21 +111,89 @@ function InsightPanel({ type, data, movie, myScore, onClose, navigate }) {
   }
 
   if (type === 'samescore') {
+    const currentEntry = { id: `current-${movie.id}`, movie_id: movie.id, movies: movie, score: myScore, isCurrent: true }
+    const allSame = [currentEntry, ...data]
     return (
       <div style={{ marginTop: 10, padding: '10px 12px', background: '#f9f9f9', borderRadius: 8 }}>
-        <div style={{ fontSize: 11, fontWeight: 500, color: '#534AB7', marginBottom: 8 }}>Other films you've scored {myScore?.toFixed(1)}</div>
+        <div style={{ fontSize: 11, fontWeight: 500, color: '#534AB7', marginBottom: 8 }}>Films you've scored {myScore?.toFixed(1)}</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {data.map(s => (
-            <div key={s.id} onClick={() => navigate(`/movie/${s.movie_id}`)} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+          {allSame.map(s => (
+            <div key={s.id} onClick={() => navigate(`/movie/${s.movie_id}`)} style={{
+              display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer',
+              background: s.isCurrent ? '#EEEDFE' : 'transparent',
+              borderRadius: 6, padding: '2px 4px', margin: '0 -4px'
+            }}>
               {s.movies?.poster_url
                 ? <img src={s.movies.poster_url} alt={s.movies.title} style={{ width: 20, height: 30, borderRadius: 3, objectFit: 'cover', flexShrink: 0 }} />
                 : <div style={{ width: 20, height: 30, borderRadius: 3, background: '#EEEDFE', flexShrink: 0 }} />
               }
-              <div style={{ flex: 1, fontSize: 11, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.movies?.title} <span style={{ color: '#aaa' }}>({s.movies?.year})</span></div>
+              <div style={{ flex: 1, fontSize: 11, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: s.isCurrent ? 600 : 400, color: s.isCurrent ? '#534AB7' : '#333' }}>
+                {s.movies?.title} <span style={{ color: '#aaa', fontWeight: 400 }}>({s.movies?.year})</span>
+                {s.isCurrent && <span style={{ fontSize: 9, color: '#534AB7', marginLeft: 4 }}>← this film</span>}
+              </div>
               <div style={{ fontSize: 11, fontWeight: 500, color: scoreColor(parseFloat(s.score)), flexShrink: 0 }}>{parseFloat(s.score).toFixed(1)}</div>
             </div>
           ))}
         </div>
+      </div>
+    )
+  }
+
+  if (type === 'genre') {
+    const { above, below } = data
+    const primaryGenre = movie.genres?.[0] || 'this genre'
+    return (
+      <div style={{ marginTop: 10, padding: '10px 12px', background: '#f9f9f9', borderRadius: 8 }}>
+        <div style={{ fontSize: 11, fontWeight: 500, color: '#534AB7', marginBottom: 8 }}>Your {primaryGenre} scores</div>
+
+        {above.length > 0 && (
+          <>
+            <div style={{ fontSize: 10, color: '#888', marginBottom: 4 }}>Scored higher or equal ({above[0] && parseFloat(above[0].score).toFixed(1)} – {above[above.length-1] && parseFloat(above[above.length-1].score).toFixed(1)})</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 8 }}>
+              {above.map(s => (
+                <div key={s.id} onClick={() => navigate(`/movie/${s.movie_id}`)} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                  {s.movies?.poster_url
+                    ? <img src={s.movies.poster_url} alt={s.movies.title} style={{ width: 20, height: 30, borderRadius: 3, objectFit: 'cover', flexShrink: 0 }} />
+                    : <div style={{ width: 20, height: 30, borderRadius: 3, background: '#EEEDFE', flexShrink: 0 }} />
+                  }
+                  <div style={{ flex: 1, fontSize: 11, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.movies?.title} <span style={{ color: '#aaa' }}>({s.movies?.year})</span></div>
+                  <div style={{ fontSize: 11, fontWeight: 500, color: scoreColor(parseFloat(s.score)), flexShrink: 0 }}>{parseFloat(s.score).toFixed(1)}</div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px', background: '#EEEDFE', borderRadius: 6, marginBottom: above.length > 0 ? 8 : 4 }}>
+          {movie.poster_url
+            ? <img src={movie.poster_url} alt={movie.title} style={{ width: 20, height: 30, borderRadius: 3, objectFit: 'cover', flexShrink: 0 }} />
+            : <div style={{ width: 20, height: 30, borderRadius: 3, background: '#EEEDFE', flexShrink: 0 }} />
+          }
+          <div style={{ flex: 1, fontSize: 11, fontWeight: 600, color: '#534AB7', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {movie.title} <span style={{ fontSize: 9 }}>← this film</span>
+          </div>
+          <div style={{ fontSize: 11, fontWeight: 500, color: myScore !== null ? scoreColor(myScore) : '#aaa', flexShrink: 0 }}>
+            {myScore !== null ? myScore.toFixed(1) : 'unscored'}
+          </div>
+        </div>
+
+        {below.length > 0 && (
+          <>
+            <div style={{ fontSize: 10, color: '#888', marginBottom: 4 }}>Scored lower or equal ({below[0] && parseFloat(below[0].score).toFixed(1)} – {below[below.length-1] && parseFloat(below[below.length-1].score).toFixed(1)})</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {below.map(s => (
+                <div key={s.id} onClick={() => navigate(`/movie/${s.movie_id}`)} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                  {s.movies?.poster_url
+                    ? <img src={s.movies.poster_url} alt={s.movies.title} style={{ width: 20, height: 30, borderRadius: 3, objectFit: 'cover', flexShrink: 0 }} />
+                    : <div style={{ width: 20, height: 30, borderRadius: 3, background: '#EEEDFE', flexShrink: 0 }} />
+                  }
+                  <div style={{ flex: 1, fontSize: 11, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.movies?.title} <span style={{ color: '#aaa' }}>({s.movies?.year})</span></div>
+                  <div style={{ fontSize: 11, fontWeight: 500, color: scoreColor(parseFloat(s.score)), flexShrink: 0 }}>{parseFloat(s.score).toFixed(1)}</div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
     )
   }
@@ -130,6 +218,7 @@ export default function MovieDetail() {
   const [directorScores, setDirectorScores] = useState([])
   const [sameScores, setSameScores] = useState([])
   const [insightsLoaded, setInsightsLoaded] = useState(false)
+  const [genreScores, setGenreScores] = useState({ above: [], below: [] })
 
   const [comments, setComments] = useState([])
   const [defenses, setDefenses] = useState([])
@@ -259,21 +348,30 @@ export default function MovieDetail() {
       setSameScores(same || [])
     }
 
+    // genre comparison — up to 4 films scored >= and 4 scored <= in same genres
+    if (userScore !== null && movieData.genres && movieData.genres.length > 0) {
+      const { data: genreData } = await supabase
+        .from('scores')
+        .select('*, movies(*)')
+        .eq('user_id', uid)
+        .eq('status', 'scored')
+        .neq('movie_id', id)
+        .order('score', { ascending: false })
+
+      if (genreData) {
+        const sameGenre = genreData.filter(s =>
+          s.movies?.genres?.some(g => movieData.genres.includes(g))
+        )
+        const above = sameGenre.filter(s => parseFloat(s.score) >= userScore).slice(0, 4)
+        const below = sameGenre.filter(s => parseFloat(s.score) <= userScore).reverse().slice(0, 4).reverse()
+        setGenreScores({ above, below })
+      }
+    }
+
     setInsightsLoaded(true)
   }
 
   useEffect(() => {
-    setMovie(null)
-    setScores([])
-    setMyScore(null)
-    setComments([])
-    setDefenses([])
-    setInsightsLoaded(false)
-    setDirectorScores([])
-    setRecentScores([])
-    setSameScores([])
-    setActiveInsight(null)
-
     async function load() {
       const { data: { user } } = await supabase.auth.getUser()
       const uid = user?.id || null
@@ -453,7 +551,7 @@ export default function MovieDetail() {
     },
     {
       type: 'director',
-      label: `How does this compare to other ${movie.director} films?`,
+      label: `How does this compare to other ${movie.director} films you've scored?`,
       available: directorScores.length > 0
     },
     {
@@ -462,6 +560,13 @@ export default function MovieDetail() {
         ? `See other films you've given a ${myScore.toFixed(1)}`
         : 'See other films you\'ve given the same score',
       available: sameScores.length > 0
+    },
+    {
+      type: 'genre',
+      label: myScore !== null && movie.genres?.length > 0
+        ? `How does your ${myScore.toFixed(1)} compare to your other ${movie.genres[0]} scores?`
+        : 'How does this compare to your other scores in this genre?',
+      available: genreScores.above.length > 0 || genreScores.below.length > 0
     },
   ]
 
@@ -580,7 +685,7 @@ export default function MovieDetail() {
                     {activeInsight === link.type && (
                       <InsightPanel
                         type={link.type}
-                        data={link.type === 'recent' ? recentScores : link.type === 'director' ? directorScores : sameScores}
+                        data={link.type === 'recent' ? recentScores : link.type === 'director' ? directorScores : link.type === 'genre' ? genreScores : sameScores}
                         movie={movie}
                         myScore={myScore}
                         onClose={() => setActiveInsight(null)}
@@ -646,7 +751,7 @@ export default function MovieDetail() {
       </div>
 
       {/* Unified feed */}
-      <div style={{ background: '#fff', borderRadius: 12, border: '0.5px solid #eee', padding: 16, marginTop: 14, textAlign: 'left' }}>
+      <div style={{ background: '#fff', borderRadius: 12, border: '0.5px solid #eee', padding: 16, marginTop: 14 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
           <div style={{ fontSize: 13, fontWeight: 500 }}>
             Discussion {totalFeedCount > 0 && <span style={{ color: '#888', fontWeight: 400 }}>({totalFeedCount})</span>}
