@@ -53,14 +53,14 @@ export default function MovieDetail() {
     // comments
     const { data: commentData } = await supabase
       .from('comments')
-      .select('*, users(username, id)')
+      .select('*, users!comments_user_id_fkey(username, id)')
       .eq('movie_id', id)
       .order('created_at', { ascending: false })
 
     // defenses for this movie (circle = everyone for now)
     const { data: defenseData } = await supabase
       .from('defenses')
-      .select('*, users(username, id)')
+      .select('*, users!comments_user_id_fkey(username, id)')
       .eq('movie_id', id)
       .order('created_at', { ascending: false })
 
@@ -125,7 +125,7 @@ export default function MovieDetail() {
 
       const { data: scoreData } = await supabase
         .from('scores')
-        .select('*, users(username, id)')
+        .select('*, users!comments_user_id_fkey(username, id)')
         .eq('movie_id', id)
         .eq('status', 'scored')
       if (scoreData) {
