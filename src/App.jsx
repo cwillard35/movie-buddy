@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useSearchParams } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabase'
 import Nav from './components/Nav'
@@ -11,7 +11,6 @@ import Profile from './pages/Profile'
 import Explore from './pages/Explore'
 import MyFilms from './pages/MyFilms'
 import MovieDetail from './pages/MovieDetail'
-import { Routes, Route, Navigate, useSearchParams } from 'react-router-dom'
 
 function NavigateWithQuery() {
   const [params] = useSearchParams()
