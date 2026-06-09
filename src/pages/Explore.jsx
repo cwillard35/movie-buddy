@@ -28,7 +28,13 @@ export default function Explore() {
   // sync query param changes (from nav search bar)
   useEffect(() => {
     const q = searchParams.get('q') || ''
-    if (q) { setQuery(q); setStep(1) }
+    const movieId = searchParams.get('movie')
+    if (movieId) {
+      setStep(2)
+    } else if (q) {
+      setQuery(q)
+      setStep(1)
+    }
   }, [searchParams])
 
   useEffect(() => {
