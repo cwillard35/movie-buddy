@@ -11,6 +11,13 @@ import Profile from './pages/Profile'
 import Explore from './pages/Explore'
 import MyFilms from './pages/MyFilms'
 import MovieDetail from './pages/MovieDetail'
+import { Routes, Route, Navigate, useSearchParams } from 'react-router-dom'
+
+function NavigateWithQuery() {
+  const [params] = useSearchParams()
+  const movie = params.get('movie')
+  return <Navigate to={movie ? `/explore?movie=${movie}` : '/explore'} replace />
+}
 
 function App() {
   const [session, setSession] = useState(undefined)
@@ -35,7 +42,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/explore" element={<Explore />} />
-          <Route path="/log" element={<Navigate to="/explore" replace />} />
+          <Route path="/log" element={<NavigateWithQuery />} />
           <Route path="/films" element={<MyFilms />} />
           <Route path="/buddies" element={<Buddies />} />
           <Route path="/top25" element={<Top25 />} />
