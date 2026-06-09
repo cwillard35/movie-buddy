@@ -442,7 +442,7 @@ export default function MovieDetail() {
     },
     {
       type: 'director',
-      label: `How does this compare to other ${movie.director} films you've scored?`,
+      label: `How does this compare to other ${movie.director} films?`,
       available: directorScores.length > 0
     },
     {
