@@ -9,7 +9,9 @@ export default function Profile() {
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
   const [editName, setEditName] = useState('')
+  const [editUsername, setEditUsername] = useState('')
   const [editBio, setEditBio] = useState('')
+  const [usernameError, setUsernameError] = useState('')
   const [saving, setSaving] = useState(false)
   const [privacy, setPrivacy] = useState({
     show_top10: true,
@@ -33,6 +35,7 @@ export default function Profile() {
       if (profileData) {
         setProfile(profileData)
         setEditName(profileData.display_name || profileData.username)
+        setEditUsername(profileData.username || '')
         setEditBio(profileData.bio || '')
         setPrivacy({
           show_top10: profileData.show_top10 ?? true,
@@ -55,15 +58,47 @@ export default function Profile() {
     load()
   }, [])
 
+  function sanitizeUsername(val) {
+    // only allow letters, numbers, underscores, hyphens
+    return val.toLowerCase().replace(/[^a-z0-9_-]/g, '')
+  }
+
   async function saveProfile() {
+    setUsernameError('')
+
+    const trimmedUsername = editUsername.trim()
+    if (!trimmedUsername) {
+      setUsernameError('Username cannot be empty.')
+      return
+    }
+    if (trimmedUsername.length < 2) {
+      setUsernameError('Username must be at least 2 characters.')
+      return
+    }
+
+    // check uniqueness only if username changed
+    if (trimmedUsername !== profile.username) {
+      const { data: existing } = await supabase
+        .from('users')
+        .select('id')
+        .eq('username', trimmedUsername)
+        .single()
+      if (existing) {
+        setUsernameError(`@${trimmedUsername} is already taken.`)
+        return
+      }
+    }
+
     setSaving(true)
     const { data: { user } } = await supabase.auth.getUser()
     await supabase.from('users').update({
       display_name: editName,
+      username: trimmedUsername,
       bio: editBio,
       ...privacy
     }).eq('id', user.id)
-    setProfile(p => ({ ...p, display_name: editName, bio: editBio, ...privacy }))
+
+    setProfile(p => ({ ...p, display_name: editName, username: trimmedUsername, bio: editBio, ...privacy }))
     setEditing(false)
     setSaving(false)
   }
@@ -141,18 +176,11 @@ export default function Profile() {
           gap: 14px;
           margin-bottom: 14px;
         }
-          @media (max-width: 768px) {
-            .profile-stats {
-              grid-template-columns: repeat(2, 1fr);
-            }
-            .top10-grid {
-              grid-template-columns: repeat(5, 1fr);
-              gap: 4px;
-            }
-            .profile-bottom {
-              grid-template-columns: 1fr;
-            }
-          }
+        @media (max-width: 768px) {
+          .profile-stats { grid-template-columns: repeat(2, 1fr); }
+          .top10-grid { grid-template-columns: repeat(5, 1fr); gap: 4px; }
+          .profile-bottom { grid-template-columns: 1fr; }
+        }
       `}</style>
 
       {/* Profile header */}
@@ -173,6 +201,37 @@ export default function Profile() {
                   placeholder="Display name"
                   style={{ fontSize: 16, padding: '6px 10px', borderRadius: 8, border: '0.5px solid #ddd', fontWeight: 500 }}
                 />
+
+                {/* Username field */}
+                <div>
+                  <div style={{ position: 'relative' }}>
+                    <span style={{
+                      position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)',
+                      fontSize: 13, color: '#aaa', pointerEvents: 'none'
+                    }}>@</span>
+                    <input
+                      value={editUsername}
+                      onChange={e => {
+                        setUsernameError('')
+                        setEditUsername(sanitizeUsername(e.target.value))
+                      }}
+                      placeholder="username"
+                      maxLength={30}
+                      style={{
+                        width: '100%', boxSizing: 'border-box',
+                        fontSize: 13, padding: '6px 10px 6px 22px',
+                        borderRadius: 8,
+                        border: `0.5px solid ${usernameError ? '#993C1D' : '#ddd'}`,
+                        fontFamily: 'inherit'
+                      }}
+                    />
+                  </div>
+                  {usernameError
+                    ? <div style={{ fontSize: 11, color: '#993C1D', marginTop: 3 }}>{usernameError}</div>
+                    : <div style={{ fontSize: 10, color: '#aaa', marginTop: 3 }}>Letters, numbers, _ and - only. This is how others @mention you.</div>
+                  }
+                </div>
+
                 <textarea
                   value={editBio}
                   onChange={e => setEditBio(e.target.value)}
@@ -184,7 +243,7 @@ export default function Profile() {
                   <button onClick={saveProfile} disabled={saving} style={{ fontSize: 12, padding: '5px 14px', borderRadius: 8, border: 'none', background: '#534AB7', color: '#fff', cursor: 'pointer' }}>
                     {saving ? 'Saving...' : 'Save'}
                   </button>
-                  <button onClick={() => setEditing(false)} style={{ fontSize: 12, padding: '5px 14px', borderRadius: 8, border: '0.5px solid #ddd', background: 'transparent', color: '#666', cursor: 'pointer' }}>
+                  <button onClick={() => { setEditing(false); setUsernameError('') }} style={{ fontSize: 12, padding: '5px 14px', borderRadius: 8, border: '0.5px solid #ddd', background: 'transparent', color: '#666', cursor: 'pointer' }}>
                     Cancel
                   </button>
                 </div>
@@ -245,7 +304,6 @@ export default function Profile() {
       )}
 
       <div className="profile-bottom">
-
         {privacy.show_recent && (
           <div style={{ background: '#fff', borderRadius: 12, border: '0.5px solid #eee', padding: 16 }}>
             <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 12 }}>Recently scored</div>
@@ -284,7 +342,6 @@ export default function Profile() {
             ))}
           </div>
         )}
-
       </div>
 
       {/* Privacy controls */}
@@ -329,7 +386,6 @@ export default function Profile() {
           Sign out
         </button>
       </div>
-
     </div>
   )
 }
