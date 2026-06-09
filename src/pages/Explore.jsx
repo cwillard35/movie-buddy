@@ -148,8 +148,6 @@ export default function Explore() {
     return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b))
   }
 
-  const quickScores = [1, 2, 3, 4, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10]
-
   function FilmRow({ movie, onClick, isTmdb }) {
     const [hovered, setHovered] = useState(false)
     const posterUrl = movie.poster_url || (movie.poster_path ? `https://image.tmdb.org/t/p/w92${movie.poster_path}` : null)
@@ -236,7 +234,6 @@ export default function Explore() {
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#aaa', marginBottom: 12 }}>
               {[1,2,3,4,5,6,7,8,9,10].map(n => <span key={n}>{n}</span>)}
             </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>{quickScores.map(s => <button key={s} onClick={() => setScore(s)} style={{ fontSize: 11, padding: '4px 9px', borderRadius: 8, border: '0.5px solid #ddd', cursor: 'pointer', background: score === s ? '#EEEDFE' : 'transparent', color: score === s ? '#534AB7' : '#666', fontWeight: score === s ? 500 : 400 }}>{s.toFixed(1)}</button>)}</div>
           </div>
           <div style={{ borderTop: '0.5px solid #f0f0f0', paddingTop: 14, marginBottom: 16 }}>
             <div onClick={() => setShowOptional(!showOptional)} style={{ fontSize: 12, color: '#534AB7', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>{showOptional ? '▾' : '▸'} Add notes or watch date <span style={{ fontSize: 10, color: '#aaa' }}>optional</span></div>
