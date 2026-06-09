@@ -237,7 +237,7 @@ export default function Explore() {
                   position: 'absolute',
                   fontSize: 10,
                   color: '#aaa',
-                  left: `calc(${(n - 1) / 9 * 100}% - ${(n - 1) / 9 * 8}px)`,
+                  left: `calc(${(n - 1) / 9 * 100}% + ${(1 - (n - 1) / 9) * 8}px)`,
                   transform: 'translateX(-50%)',
                 }}>{n}</span>
               ))}
