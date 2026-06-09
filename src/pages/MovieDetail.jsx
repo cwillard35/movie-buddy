@@ -363,7 +363,10 @@ export default function MovieDetail() {
           s.movies?.genres?.some(g => movieData.genres.includes(g))
         )
         const above = sameGenre.filter(s => parseFloat(s.score) >= userScore).slice(0, 4)
-        const below = sameGenre.filter(s => parseFloat(s.score) <= userScore).reverse().slice(0, 4).reverse()
+        const below = sameGenre
+          .filter(s => parseFloat(s.score) <= userScore)
+          .sort((a, b) => parseFloat(b.score) - parseFloat(a.score))
+          .slice(0, 4)
         setGenreScores({ above, below })
       }
     }
