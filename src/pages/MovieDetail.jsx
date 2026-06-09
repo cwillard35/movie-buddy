@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { ThumbsUp, ThumbsDown, Trash2, Shield } from 'lucide-react'
+import { ThumbsUp, ThumbsDown, Trash2, Shield, ChevronDown, ChevronUp } from 'lucide-react'
 
 function parseMentions(body) {
   const matches = body.match(/@(\w+)/g) || []
@@ -27,6 +27,87 @@ function scoreColor(s) {
   return '#993C1D'
 }
 
+// Insight panel shown below the Log/Edit button
+function InsightPanel({ type, data, movie, myScore, onClose, navigate }) {
+  if (!data || data.length === 0) return (
+    <div style={{ marginTop: 10, padding: '10px 12px', background: '#f9f9f9', borderRadius: 8, fontSize: 12, color: '#888' }}>
+      Not enough data yet.
+    </div>
+  )
+
+  if (type === 'recent') {
+    const sorted = [...data].sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at)).slice(0, 10)
+    const avg = sorted.reduce((s, x) => s + parseFloat(x.score), 0) / sorted.length
+    const higher = sorted.filter(x => parseFloat(x.score) > myScore).length
+    const lower = sorted.filter(x => parseFloat(x.score) < myScore).length
+    return (
+      <div style={{ marginTop: 10, padding: '10px 12px', background: '#f9f9f9', borderRadius: 8 }}>
+        <div style={{ fontSize: 11, fontWeight: 500, color: '#534AB7', marginBottom: 8 }}>Your last 10 scores · avg {avg.toFixed(2)}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {sorted.map((s, i) => (
+            <div key={s.id} onClick={() => navigate(`/movie/${s.movie_id}`)} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+              <div style={{ fontSize: 10, color: '#aaa', width: 14, textAlign: 'right', flexShrink: 0 }}>{i + 1}</div>
+              {s.movies?.poster_url
+                ? <img src={s.movies.poster_url} alt={s.movies.title} style={{ width: 20, height: 30, borderRadius: 3, objectFit: 'cover', flexShrink: 0 }} />
+                : <div style={{ width: 20, height: 30, borderRadius: 3, background: '#EEEDFE', flexShrink: 0 }} />
+              }
+              <div style={{ flex: 1, fontSize: 11, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: s.movie_id === movie.id ? '#534AB7' : '#333', fontWeight: s.movie_id === movie.id ? 600 : 400 }}>
+                {s.movies?.title} {s.movie_id === movie.id && '← this film'}
+              </div>
+              <div style={{ fontSize: 11, fontWeight: 500, color: scoreColor(parseFloat(s.score)), flexShrink: 0 }}>{parseFloat(s.score).toFixed(1)}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{ fontSize: 10, color: '#888', marginTop: 8, borderTop: '0.5px solid #eee', paddingTop: 6 }}>
+          Your {myScore?.toFixed(1)} is higher than {higher} and lower than {lower} of your last 10.
+        </div>
+      </div>
+    )
+  }
+
+  if (type === 'director') {
+    return (
+      <div style={{ marginTop: 10, padding: '10px 12px', background: '#f9f9f9', borderRadius: 8 }}>
+        <div style={{ fontSize: 11, fontWeight: 500, color: '#534AB7', marginBottom: 8 }}>Other films by {movie.director}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {data.map(s => (
+            <div key={s.movie_id} onClick={() => navigate(`/movie/${s.movie_id}`)} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+              {s.movies?.poster_url
+                ? <img src={s.movies.poster_url} alt={s.movies.title} style={{ width: 20, height: 30, borderRadius: 3, objectFit: 'cover', flexShrink: 0 }} />
+                : <div style={{ width: 20, height: 30, borderRadius: 3, background: '#EEEDFE', flexShrink: 0 }} />
+              }
+              <div style={{ flex: 1, fontSize: 11, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.movies?.title} <span style={{ color: '#aaa' }}>({s.movies?.year})</span></div>
+              <div style={{ fontSize: 11, fontWeight: 500, color: scoreColor(parseFloat(s.score)), flexShrink: 0 }}>{parseFloat(s.score).toFixed(1)}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  if (type === 'samescore') {
+    return (
+      <div style={{ marginTop: 10, padding: '10px 12px', background: '#f9f9f9', borderRadius: 8 }}>
+        <div style={{ fontSize: 11, fontWeight: 500, color: '#534AB7', marginBottom: 8 }}>Other films you've scored {myScore?.toFixed(1)}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {data.map(s => (
+            <div key={s.id} onClick={() => navigate(`/movie/${s.movie_id}`)} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+              {s.movies?.poster_url
+                ? <img src={s.movies.poster_url} alt={s.movies.title} style={{ width: 20, height: 30, borderRadius: 3, objectFit: 'cover', flexShrink: 0 }} />
+                : <div style={{ width: 20, height: 30, borderRadius: 3, background: '#EEEDFE', flexShrink: 0 }} />
+              }
+              <div style={{ flex: 1, fontSize: 11, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.movies?.title} <span style={{ color: '#aaa' }}>({s.movies?.year})</span></div>
+              <div style={{ fontSize: 11, fontWeight: 500, color: scoreColor(parseFloat(s.score)), flexShrink: 0 }}>{parseFloat(s.score).toFixed(1)}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  return null
+}
+
 export default function MovieDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -37,6 +118,13 @@ export default function MovieDetail() {
   const [loading, setLoading] = useState(true)
   const [lightbox, setLightbox] = useState(false)
   const [allUsers, setAllUsers] = useState([])
+
+  // insights
+  const [activeInsight, setActiveInsight] = useState(null) // 'recent' | 'director' | 'samescore' | null
+  const [recentScores, setRecentScores] = useState([])
+  const [directorScores, setDirectorScores] = useState([])
+  const [sameScores, setSameScores] = useState([])
+  const [insightsLoaded, setInsightsLoaded] = useState(false)
 
   const [comments, setComments] = useState([])
   const [defenses, setDefenses] = useState([])
@@ -50,21 +138,18 @@ export default function MovieDetail() {
   const textareaRef = useRef(null)
 
   const loadFeed = useCallback(async (uid) => {
-    // comments
     const { data: commentData } = await supabase
       .from('comments')
       .select('*, users!comments_user_id_fkey(username, id)')
       .eq('movie_id', id)
       .order('created_at', { ascending: false })
 
-    // defenses for this movie (circle = everyone for now)
     const { data: defenseData } = await supabase
       .from('defenses')
-      .select('*, users!scores_user_id_fkey(username, id)')
+      .select('*, users!defenses_user_id_fkey(username, id)')
       .eq('movie_id', id)
       .order('created_at', { ascending: false })
 
-    // vote tallies
     const { data: myVoteData } = await supabase
       .from('comment_votes')
       .select('comment_id, vote')
@@ -83,34 +168,77 @@ export default function MovieDetail() {
     if (myVoteData) myVoteData.forEach(v => { myVoteMap[v.comment_id] = v.vote })
 
     const enrichedComments = (commentData || []).map(c => ({
-      ...c,
-      type: 'comment',
-      netVotes: totals[c.id] || 0
+      ...c, type: 'comment', netVotes: totals[c.id] || 0
     }))
 
-    // attach the author's score to each defense
     const defenseUserIds = (defenseData || []).map(d => d.user_id)
     let scoreMap = {}
     if (defenseUserIds.length > 0) {
       const { data: scoreRows } = await supabase
-        .from('scores')
-        .select('user_id, score')
-        .eq('movie_id', id)
-        .in('user_id', defenseUserIds)
+        .from('scores').select('user_id, score')
+        .eq('movie_id', id).in('user_id', defenseUserIds)
       if (scoreRows) scoreRows.forEach(r => { scoreMap[r.user_id] = parseFloat(r.score) })
     }
 
     const enrichedDefenses = (defenseData || []).map(d => ({
-      ...d,
-      type: 'defense',
-      netVotes: 0, // defenses don't participate in voting
-      authorScore: scoreMap[d.user_id] ?? null
+      ...d, type: 'defense', netVotes: 0, authorScore: scoreMap[d.user_id] ?? null
     }))
 
     setComments(enrichedComments)
     setDefenses(enrichedDefenses)
     setMyVotes(myVoteMap)
   }, [id])
+
+  async function loadInsights(uid, movieData, userScore) {
+    if (insightsLoaded || !uid) return
+
+    // last 10 scored films (including this one)
+    const { data: recent } = await supabase
+      .from('scores')
+      .select('*, movies(*)')
+      .eq('user_id', uid)
+      .eq('status', 'scored')
+      .order('updated_at', { ascending: false })
+      .limit(10)
+    setRecentScores(recent || [])
+
+    // other films by same director the user has scored
+    if (movieData.director) {
+      const { data: dirMovies } = await supabase
+        .from('movies')
+        .select('id')
+        .eq('director', movieData.director)
+        .neq('id', id)
+
+      if (dirMovies && dirMovies.length > 0) {
+        const dirIds = dirMovies.map(m => m.id)
+        const { data: dirScored } = await supabase
+          .from('scores')
+          .select('*, movies(*)')
+          .eq('user_id', uid)
+          .eq('status', 'scored')
+          .in('movie_id', dirIds)
+          .order('score', { ascending: false })
+        setDirectorScores(dirScored || [])
+      }
+    }
+
+    // other films with same score
+    if (userScore !== null) {
+      const { data: same } = await supabase
+        .from('scores')
+        .select('*, movies(*)')
+        .eq('user_id', uid)
+        .eq('status', 'scored')
+        .eq('score', userScore)
+        .neq('movie_id', id)
+        .order('updated_at', { ascending: false })
+        .limit(20)
+      setSameScores(same || [])
+    }
+
+    setInsightsLoaded(true)
+  }
 
   useEffect(() => {
     async function load() {
@@ -128,10 +256,14 @@ export default function MovieDetail() {
         .select('*, users!scores_user_id_fkey(username, id)')
         .eq('movie_id', id)
         .eq('status', 'scored')
+      let userScore = null
       if (scoreData) {
         setScores(scoreData)
         const mine = scoreData.find(s => s.user_id === uid)
-        if (mine) setMyScore(parseFloat(mine.score))
+        if (mine) {
+          userScore = parseFloat(mine.score)
+          setMyScore(userScore)
+        }
       }
 
       const { data: userData } = await supabase
@@ -139,6 +271,10 @@ export default function MovieDetail() {
       if (userData) setAllUsers(userData)
 
       await loadFeed(uid)
+
+      // load insights in background — non-blocking
+      if (uid) loadInsights(uid, movieData, userScore)
+
       setLoading(false)
     }
     load()
@@ -172,7 +308,7 @@ export default function MovieDetail() {
     const filtered = allUsers.filter(u => u.username.toLowerCase().startsWith(mentionQuery))
     if (e.key === 'ArrowDown') { e.preventDefault(); setMentionIndex(i => Math.min(i + 1, filtered.length - 1)) }
     else if (e.key === 'ArrowUp') { e.preventDefault(); setMentionIndex(i => Math.max(i - 1, 0)) }
-    else if (e.key === 'Enter' || e.key === 'Tab') { if (filtered.length > 0) { e.preventDefault(); insertMention(filtered[mentionIndex].username) } }
+    else if ((e.key === 'Enter' || e.key === 'Tab') && filtered.length > 0) { e.preventDefault(); insertMention(filtered[mentionIndex].username) }
     else if (e.key === 'Escape') setMentionQuery(null)
   }
 
@@ -246,7 +382,10 @@ export default function MovieDetail() {
     setSubmitting(false)
   }
 
-  // merge comments + defenses into one sorted feed
+  function toggleInsight(type) {
+    setActiveInsight(prev => prev === type ? null : type)
+  }
+
   const allFeedItems = [...comments, ...defenses].sort((a, b) => {
     if (commentSort === 'top') {
       return b.netVotes - a.netVotes || new Date(b.created_at) - new Date(a.created_at)
@@ -273,11 +412,40 @@ export default function MovieDetail() {
   const charsLeft = 140 - commentBody.length
   const charsLeftColor = charsLeft <= 10 ? '#993C1D' : charsLeft <= 30 ? '#b45309' : '#aaa'
 
+  const insightLinks = [
+    {
+      type: 'recent',
+      label: 'How does this stack up against your last 10 viewings?',
+      available: recentScores.length > 0
+    },
+    {
+      type: 'director',
+      label: `How does this compare to other ${movie.director} films you've scored?`,
+      available: directorScores.length > 0
+    },
+    {
+      type: 'samescore',
+      label: myScore !== null
+        ? `See other films you've given a ${myScore.toFixed(1)}`
+        : 'See other films you\'ve given the same score',
+      available: sameScores.length > 0
+    },
+  ]
+
   return (
     <div style={{ padding: 20, maxWidth: 1100, margin: '0 auto' }}>
       <style>{`
         .detail-hero { display: flex; gap: 20px; }
         .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .insight-btn {
+          display: flex; align-items: center; justify-content: space-between;
+          width: 100%; background: none; border: 0.5px solid #e8e6fb;
+          border-radius: 8px; padding: 7px 10px; cursor: pointer;
+          font-size: 11px; color: #534AB7; text-align: left;
+          transition: background 0.15s; font-family: inherit;
+        }
+        .insight-btn:hover { background: #EEEDFE; }
+        .insight-btn.active { background: #EEEDFE; border-color: #534AB7; }
         .comment-vote-btn {
           background: none; border: none; cursor: pointer;
           padding: 3px 5px; border-radius: 4px;
@@ -351,12 +519,45 @@ export default function MovieDetail() {
                 <div style={{ fontSize: 16, fontWeight: 500 }}>{scores.length} members</div>
               </div>
             </div>
+
             <button
               onClick={() => navigate(`/log?movie=${movie.id}`)}
-              style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: '#534AB7', color: '#fff', fontSize: 12, fontWeight: 500, cursor: 'pointer' }}
+              style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: '#534AB7', color: '#fff', fontSize: 12, fontWeight: 500, cursor: 'pointer', marginBottom: 12 }}
             >
               {myScore ? 'Edit your score' : '+ Log your score'}
             </button>
+
+            {/* Insight links — only shown when logged in */}
+            {userId && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                {insightLinks.map(link => (
+                  <div key={link.type}>
+                    <button
+                      className={`insight-btn${activeInsight === link.type ? ' active' : ''}`}
+                      onClick={() => toggleInsight(link.type)}
+                      disabled={!link.available}
+                      style={{ opacity: link.available ? 1 : 0.4, cursor: link.available ? 'pointer' : 'default' }}
+                    >
+                      <span>{link.label}</span>
+                      {link.available && (activeInsight === link.type
+                        ? <ChevronUp size={12} style={{ flexShrink: 0, marginLeft: 6 }} />
+                        : <ChevronDown size={12} style={{ flexShrink: 0, marginLeft: 6 }} />
+                      )}
+                    </button>
+                    {activeInsight === link.type && (
+                      <InsightPanel
+                        type={link.type}
+                        data={link.type === 'recent' ? recentScores : link.type === 'director' ? directorScores : sameScores}
+                        movie={movie}
+                        myScore={myScore}
+                        onClose={() => setActiveInsight(null)}
+                        navigate={navigate}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -413,8 +614,6 @@ export default function MovieDetail() {
 
       {/* Unified feed */}
       <div style={{ background: '#fff', borderRadius: 12, border: '0.5px solid #eee', padding: 16, marginTop: 14 }}>
-
-        {/* Header + sort */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
           <div style={{ fontSize: 13, fontWeight: 500 }}>
             Discussion {totalFeedCount > 0 && <span style={{ color: '#888', fontWeight: 400 }}>({totalFeedCount})</span>}
@@ -425,7 +624,6 @@ export default function MovieDetail() {
           </div>
         </div>
 
-        {/* Compose */}
         {userId && (
           <div style={{ marginBottom: 16, position: 'relative' }}>
             <textarea
@@ -483,7 +681,6 @@ export default function MovieDetail() {
           </div>
         )}
 
-        {/* Feed */}
         {allFeedItems.length === 0 ? (
           <div style={{ fontSize: 12, color: '#aaa', textAlign: 'center', padding: '20px 0' }}>
             No discussion yet. Be the first.
@@ -501,13 +698,10 @@ export default function MovieDetail() {
                     borderBottom: isLast ? 'none' : '0.5px solid #f0f0f0',
                     display: 'flex', gap: 10, alignItems: 'flex-start'
                   }}>
-                    {/* Defense accent bar */}
                     <div style={{ width: 3, borderRadius: 2, background: '#534AB7', alignSelf: 'stretch', flexShrink: 0, minHeight: 40 }} />
-
                     <div style={{ width: 28, height: 28, borderRadius: '50%', background: isMe ? '#EEEDFE' : '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 500, color: isMe ? '#534AB7' : '#666', flexShrink: 0 }}>
                       {item.users?.username?.slice(0, 2).toUpperCase()}
                     </div>
-
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3, flexWrap: 'wrap' }}>
                         <span style={{ fontSize: 12, fontWeight: 500 }}>{item.users?.username}</span>
@@ -518,14 +712,9 @@ export default function MovieDetail() {
                         </span>
                         <span style={{ fontSize: 10, color: '#bbb' }}>{timeAgo(item.created_at)}</span>
                       </div>
-                      <div style={{ fontSize: 13, color: '#333', lineHeight: 1.45, wordBreak: 'break-word' }}>
-                        {item.body}
-                      </div>
+                      <div style={{ fontSize: 13, color: '#333', lineHeight: 1.45, wordBreak: 'break-word' }}>{item.body}</div>
                       <div style={{ marginTop: 5 }}>
-                        <button
-                          onClick={() => navigate(`/defend`)}
-                          style={{ fontSize: 10, color: '#888', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                        >
+                        <button onClick={() => navigate(`/defend`)} style={{ fontSize: 10, color: '#888', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
                           View thread →
                         </button>
                       </div>
@@ -534,7 +723,6 @@ export default function MovieDetail() {
                 )
               }
 
-              // regular comment
               const myVote = myVotes[item.id]
               return (
                 <div key={`comment-${item.id}`} style={{
@@ -580,7 +768,6 @@ export default function MovieDetail() {
         )}
       </div>
 
-      {/* Lightbox */}
       {lightbox && (
         <div onClick={() => setLightbox(false)} style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
