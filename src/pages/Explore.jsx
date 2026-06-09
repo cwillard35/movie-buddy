@@ -34,6 +34,14 @@ export default function Explore() {
     } else if (q) {
       setQuery(q)
       setStep(1)
+    } else {
+      setStep(1)
+      setQuery('')
+      setSelectedMovie(null)
+      setScore(5.0)
+      setNotes('')
+      setWatchDate('')
+      setIsTMDB(false)
     }
   }, [searchParams])
 

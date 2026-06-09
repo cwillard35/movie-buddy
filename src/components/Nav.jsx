@@ -144,7 +144,7 @@ export default function Nav({ session }) {
 
         <div style={{ display: 'flex', gap: 4 }}>
           {links.map(l => (
-            <Link key={l.to} to={l.to} style={{
+              <Link key={l.to} to={l.to === '/explore' ? `/explore?t=${Date.now()}` : l.to} style={{
               fontSize: 13, padding: '6px 12px', borderRadius: 6, textDecoration: 'none',
               background: pathname === l.to ? '#EEEDFE' : 'transparent',
               color: pathname === l.to ? '#534AB7' : '#666',
@@ -180,7 +180,7 @@ export default function Nav({ session }) {
           const Icon = l.icon
           const active = pathname === l.to
           return (
-            <Link key={l.to} to={l.to} className={`nav-mobile-item${active ? ' active' : ''}`}>
+            <Link key={l.to} to={l.to === '/explore' ? `/explore?t=${Date.now()}` : l.to} className={`nav-mobile-item${active ? ' active' : ''}`}>
               <Icon size={22} strokeWidth={active ? 2.5 : 1.5} />
               <span>{l.label}</span>
             </Link>
