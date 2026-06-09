@@ -263,6 +263,17 @@ export default function MovieDetail() {
   }
 
   useEffect(() => {
+    setMovie(null)
+    setScores([])
+    setMyScore(null)
+    setComments([])
+    setDefenses([])
+    setInsightsLoaded(false)
+    setDirectorScores([])
+    setRecentScores([])
+    setSameScores([])
+    setActiveInsight(null)
+
     async function load() {
       const { data: { user } } = await supabase.auth.getUser()
       const uid = user?.id || null
