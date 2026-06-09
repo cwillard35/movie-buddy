@@ -76,8 +76,13 @@ function InsightPanel({ type, data, movie, myScore, onClose, navigate }) {
                 ? <img src={s.movies.poster_url} alt={s.movies.title} style={{ width: 20, height: 30, borderRadius: 3, objectFit: 'cover', flexShrink: 0 }} />
                 : <div style={{ width: 20, height: 30, borderRadius: 3, background: '#EEEDFE', flexShrink: 0 }} />
               }
-              <div style={{ flex: 1, fontSize: 11, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.movies?.title} <span style={{ color: '#aaa' }}>({s.movies?.year})</span></div>
-              <div style={{ fontSize: 11, fontWeight: 500, color: scoreColor(parseFloat(s.score)), flexShrink: 0 }}>{parseFloat(s.score).toFixed(1)}</div>
+              <div style={{ flex: 1, fontSize: 11, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {s.movies?.title} <span style={{ color: '#aaa' }}>({s.movies?.year})</span>
+              </div>
+              {s.score !== null
+                ? <div style={{ fontSize: 11, fontWeight: 500, color: scoreColor(parseFloat(s.score)), flexShrink: 0 }}>{parseFloat(s.score).toFixed(1)}</div>
+                : <div style={{ fontSize: 10, color: '#aaa', flexShrink: 0 }}>unscored</div>
+              }
             </div>
           ))}
         </div>
@@ -202,24 +207,41 @@ export default function MovieDetail() {
       .limit(10)
     setRecentScores(recent || [])
 
-    // other films by same director the user has scored
+    // all films by same director in catalog, with user's score if they have one
     if (movieData.director) {
       const { data: dirMovies } = await supabase
         .from('movies')
-        .select('id')
+        .select('*')
         .eq('director', movieData.director)
         .neq('id', id)
+        .order('year', { ascending: false })
 
       if (dirMovies && dirMovies.length > 0) {
         const dirIds = dirMovies.map(m => m.id)
         const { data: dirScored } = await supabase
           .from('scores')
-          .select('*, movies(*)')
+          .select('movie_id, score, status')
           .eq('user_id', uid)
-          .eq('status', 'scored')
           .in('movie_id', dirIds)
-          .order('score', { ascending: false })
-        setDirectorScores(dirScored || [])
+
+        const scoreMap = {}
+        if (dirScored) dirScored.forEach(s => { scoreMap[s.movie_id] = s })
+
+        const merged = dirMovies.map(m => ({
+          movie_id: m.id,
+          movies: m,
+          score: scoreMap[m.id]?.score ?? null,
+          status: scoreMap[m.id]?.status ?? null,
+        }))
+
+        merged.sort((a, b) => {
+          if (a.score !== null && b.score !== null) return parseFloat(b.score) - parseFloat(a.score)
+          if (a.score !== null) return -1
+          if (b.score !== null) return 1
+          return a.movies.title.localeCompare(b.movies.title)
+        })
+
+        setDirectorScores(merged)
       }
     }
 
