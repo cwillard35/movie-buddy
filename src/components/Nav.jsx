@@ -103,7 +103,7 @@ function SearchBar({ onNavigate }) {
           {results.map(m => (
             <div
               key={m.id}
-              onClick={() => handleSelect(m)}
+              onMouseDown={() => handleSelect(m)}
               style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', cursor: 'pointer', borderBottom: '0.5px solid #f5f5f5' }}
               onMouseEnter={e => e.currentTarget.style.background = '#f9f9f9'}
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
