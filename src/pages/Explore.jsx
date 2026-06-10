@@ -303,7 +303,7 @@ export default function Explore() {
         }
         .search-sticky {
           position: sticky;
-          top: 0;
+          top: 53px;  /* height of your desktop nav */
           z-index: 10;
           background: #fff;
           padding: 12px 0;

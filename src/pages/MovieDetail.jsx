@@ -662,7 +662,7 @@ export default function MovieDetail() {
             </div>
 
             <button
-              onClick={() => navigate(`/explore?movie=${movie.id}`)}
+              onClick={() => navigate(`/explore?q=${encodeURIComponent(movie.title)}`)}
               style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: '#534AB7', color: '#fff', fontSize: 12, fontWeight: 500, cursor: 'pointer', marginBottom: 12 }}
             >
               {myScore ? 'Edit your score' : '+ Log your score'}
