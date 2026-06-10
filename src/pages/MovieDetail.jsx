@@ -627,20 +627,28 @@ export default function MovieDetail() {
         {/* Score distribution */}
         <div style={{ background: '#fff', borderRadius: 12, border: '0.5px solid #eee', padding: 16 }}>
           <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 12 }}>Score distribution</div>
-          {[10, 9.75, 9.5, 9.25, 9, 8.75, 8.5, 8.25, 8, 7.75, 7.5, 7.25, 7, 6.75, 6.5, 6.25, 6, 5.75, 5.5, 5.25, 5, 4.75, 4.5, 4.25, 4, 3.75, 3.5, 3.25, 3, 2.75, 2.5, 2.25, 2, 1.75, 1.5, 1.25, 1].map(bucket => {
-            const count = buckets[bucket] || 0
-            const isMe = myScore !== null && Math.round(myScore * 4) / 4 === bucket
-            if (count === 0 && !isMe) return null
-            return (
-              <div key={bucket} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                <div style={{ fontSize: 10, color: '#888', width: 28, textAlign: 'right', flexShrink: 0 }}>{bucket}</div>
-                <div style={{ flex: 1, height: 16, background: '#f5f5f5', borderRadius: 3, overflow: 'hidden' }}>
-                  <div style={{ width: `${(count / maxCount) * 100}%`, height: '100%', background: isMe ? '#0F6E56' : '#534AB7', borderRadius: 3, minWidth: count > 0 ? 4 : 0 }} />
+          {(() => {
+            const allBuckets = [10, 9.75, 9.5, 9.25, 9, 8.75, 8.5, 8.25, 8, 7.75, 7.5, 7.25, 7, 6.75, 6.5, 6.25, 6, 5.75, 5.5, 5.25, 5, 4.75, 4.5, 4.25, 4, 3.75, 3.5, 3.25, 3, 2.75, 2.5, 2.25, 2, 1.75, 1.5, 1.25, 1]
+            const scoredBuckets = allBuckets.filter(b => (buckets[b] || 0) > 0)
+            const myBucket = myScore !== null ? Math.round(myScore * 4) / 4 : null
+            if (scoredBuckets.length === 0 && myBucket === null) return null
+            const allVisible = myBucket !== null ? [...scoredBuckets, myBucket] : scoredBuckets
+            const maxBucket = Math.max(...allVisible)
+            const minBucket = Math.min(...allVisible)
+            return allBuckets.filter(b => b >= minBucket && b <= maxBucket).map(bucket => {
+              const count = buckets[bucket] || 0
+              const isMe = myBucket === bucket
+              return (
+                <div key={bucket} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                  <div style={{ fontSize: 10, color: '#888', width: 28, textAlign: 'right', flexShrink: 0 }}>{bucket}</div>
+                  <div style={{ flex: 1, height: 16, background: '#f5f5f5', borderRadius: 3, overflow: 'hidden' }}>
+                    <div style={{ width: `${(count / maxCount) * 100}%`, height: '100%', background: isMe ? '#0F6E56' : '#534AB7', borderRadius: 3, minWidth: count > 0 ? 4 : 0 }} />
+                  </div>
+                  <div style={{ fontSize: 10, color: '#888', width: 16, flexShrink: 0 }}>{count > 0 ? count : ''}</div>
                 </div>
-                <div style={{ fontSize: 10, color: '#888', width: 16, flexShrink: 0 }}>{count}</div>
-              </div>
-            )
-          })}
+              )
+            })
+          })()}
           <div style={{ display: 'flex', gap: 12, marginTop: 10 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: '#666' }}><div style={{ width: 10, height: 10, borderRadius: 2, background: '#534AB7' }} /> others</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: '#666' }}><div style={{ width: 10, height: 10, borderRadius: 2, background: '#0F6E56' }} /> your score</div>
