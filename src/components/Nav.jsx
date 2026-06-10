@@ -23,7 +23,6 @@ function SearchBar({ onNavigate }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
 
-  // Load all movies once for instant filtering
   useEffect(() => {
     async function load() {
       const pageSize = 1000
@@ -45,7 +44,6 @@ function SearchBar({ onNavigate }) {
     load()
   }, [])
 
-  // Filter on query change
   useEffect(() => {
     if (!query || query.length < 2) { setResults([]); setOpen(false); return }
     const q = query.toLowerCase()
@@ -70,11 +68,11 @@ function SearchBar({ onNavigate }) {
     if (onNavigate) onNavigate()
   }
 
-  function handleSelect(e, movie) {
-    e.preventDefault()
+  function handleSelect(movie) {
     setQuery('')
     setOpen(false)
     navigate(`/movie/${movie.id}`)
+    if (onNavigate) onNavigate()
   }
 
   return (
@@ -95,15 +93,18 @@ function SearchBar({ onNavigate }) {
       </form>
 
       {open && (
-        <div style={{
-          position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0,
-          background: '#fff', borderRadius: 10, border: '0.5px solid #eee',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.1)', zIndex: 200, overflow: 'hidden'
-        }}>
+        <div
+          onMouseDown={e => e.stopPropagation()}
+          style={{
+            position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0,
+            background: '#fff', borderRadius: 10, border: '0.5px solid #eee',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.1)', zIndex: 200, overflow: 'hidden'
+          }}
+        >
           {results.map(m => (
             <div
               key={m.id}
-              onMouseDown={(e) => handleSelect(e, m)}
+              onMouseDown={() => handleSelect(m)}
               style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', cursor: 'pointer', borderBottom: '0.5px solid #f5f5f5' }}
               onMouseEnter={e => e.currentTarget.style.background = '#f9f9f9'}
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
