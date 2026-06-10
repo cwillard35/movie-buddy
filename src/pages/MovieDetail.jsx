@@ -514,7 +514,7 @@ export default function MovieDetail() {
 
   const groupAvg = scores.length > 0 ? scores.reduce((sum, s) => sum + parseFloat(s.score), 0) / scores.length : null
   const buckets = {}
-  scores.forEach(s => { const bucket = Math.floor(parseFloat(s.score) * 2) / 2; buckets[bucket] = (buckets[bucket] || 0) + 1 })
+  scores.forEach(s => { const bucket = Math.round(parseFloat(s.score) * 4) / 4; buckets[bucket] = (buckets[bucket] || 0) + 1 })
   const maxCount = Math.max(...Object.values(buckets), 1)
   const charsLeft = 140 - commentBody.length
   const charsLeftColor = charsLeft <= 10 ? '#993C1D' : charsLeft <= 30 ? '#b45309' : '#aaa'
@@ -627,9 +627,9 @@ export default function MovieDetail() {
         {/* Score distribution */}
         <div style={{ background: '#fff', borderRadius: 12, border: '0.5px solid #eee', padding: 16 }}>
           <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 12 }}>Score distribution</div>
-          {[10, 9.5, 9, 8.5, 8, 7.5, 7, 6.5, 6, 5.5, 5, 4.5, 4, 3.5, 3, 2.5, 2, 1.5, 1].map(bucket => {
+          {[10, 9.75, 9.5, 9.25, 9, 8.75, 8.5, 8.25, 8, 7.75, 7.5, 7.25, 7, 6.75, 6.5, 6.25, 6, 5.75, 5.5, 5.25, 5, 4.75, 4.5, 4.25, 4, 3.75, 3.5, 3.25, 3, 2.75, 2.5, 2.25, 2, 1.75, 1.5, 1.25, 1].map(bucket => {
             const count = buckets[bucket] || 0
-            const isMe = myScore === bucket
+            const isMe = myScore !== null && Math.round(myScore * 4) / 4 === bucket
             if (count === 0 && !isMe) return null
             return (
               <div key={bucket} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
