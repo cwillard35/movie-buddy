@@ -140,19 +140,27 @@ export default function Explore() {
       `}</style>
 
       {/* Search bar */}
-      <div style={{ marginBottom: 20 }}>
-        <input
-          type="text"
-          placeholder="Search films..."
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          style={{
-            width: '100%', padding: '10px 14px', borderRadius: 10,
-            border: '0.5px solid #ddd', fontSize: 14, boxSizing: 'border-box',
-            outline: 'none'
-          }}
-        />
-      </div>
+        <div style={{ 
+          position: 'sticky', 
+          top: 0, 
+          zIndex: 10, 
+          background: '#fff', 
+          paddingBottom: 12,
+          paddingTop: 8,
+          marginBottom: 8
+        }}>
+          <input
+            type="text"
+            placeholder="Search films..."
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            style={{
+              width: '100%', padding: '10px 14px', borderRadius: 10,
+              border: '0.5px solid #ddd', fontSize: 14, boxSizing: 'border-box',
+              outline: 'none'
+            }}
+          />
+        </div>
 
       {loading && (
         <div style={{ textAlign: 'center', padding: 60, color: '#aaa', fontSize: 13 }}>Loading…</div>
