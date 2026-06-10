@@ -176,9 +176,6 @@ function ScorePanel({ movie, userId, existingScore, onSaved, onCancel }) {
   const [showOptional, setShowOptional] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
-  const quickScores = [1, 2, 3, 4, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10]
-  function formatScore(v) { const n = parseFloat(v); return n % 1 === 0 ? n.toFixed(2) : n.toString() }
-
   async function handleSubmit() {
     if (!userId) return
     setSubmitting(true)
@@ -206,26 +203,24 @@ function ScorePanel({ movie, userId, existingScore, onSaved, onCancel }) {
   return (
     <div style={{ marginTop: 12, background: '#f9f9f9', borderRadius: 10, padding: 14, border: '0.5px solid #e8e6fb' }}>
       <div style={{ textAlign: 'center', marginBottom: 12 }}>
-        <div style={{ fontSize: 44, fontWeight: 500, color: scoreColor(score), lineHeight: 1 }}>{formatScore(score)}</div>
+        <div style={{ fontSize: 44, fontWeight: 500, color: scoreColor(score), lineHeight: 1 }}>{score % 1 === 0 ? score.toFixed(2) : score.toFixed(2)}</div>
         <div style={{ fontSize: 11, color: '#888', marginTop: 2 }}>drag or tap a score</div>
       </div>
       <input
         type="range" min="1" max="10" step="0.25" value={score}
         onChange={e => setScore(parseFloat(e.target.value))}
-        style={{ width: '100%', marginBottom: 6 }}
+        style={{ width: '100%', marginBottom: 4 }}
       />
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#aaa', marginBottom: 10 }}>
-        <span>1.0</span><span>3.0</span><span>5.0</span><span>7.0</span><span>9.0</span><span>10.0</span>
-      </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 12 }}>
-        {quickScores.map(s => (
-          <button key={s} onClick={() => setScore(s)} style={{
-            fontSize: 11, padding: '3px 8px', borderRadius: 6,
-            border: '0.5px solid #ddd', cursor: 'pointer',
-            background: score === s ? '#EEEDFE' : 'transparent',
-            color: score === s ? '#534AB7' : '#666',
-            fontWeight: score === s ? 500 : 400
-          }}>{s.toFixed(2)}</button>
+      <div style={{ position: 'relative', height: 16, marginBottom: 10 }}>
+        {[1,2,3,4,5,6,7,8,9,10].map(n => (
+          <span key={n} style={{
+            position: 'absolute',
+            left: `${(n - 1) / 9 * 100}%`,
+            transform: 'translateX(-50%)',
+            fontSize: 10,
+            color: '#aaa',
+            whiteSpace: 'nowrap'
+          }}>{n}</span>
         ))}
       </div>
 
@@ -640,7 +635,7 @@ export default function MovieDetail() {
               const isMe = myBucket === bucket
               return (
                 <div key={bucket} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                  <div style={{ fontSize: 10, color: '#888', width: 28, textAlign: 'right', flexShrink: 0 }}>{bucket}</div>
+                  <div style={{ fontSize: 10, color: '#888', width: 28, textAlign: 'right', flexShrink: 0 }}>{Number.isInteger(bucket) ? bucket : ''}</div>
                   <div style={{ flex: 1, height: 16, background: '#f5f5f5', borderRadius: 3, overflow: 'hidden' }}>
                     <div style={{ width: `${(count / maxCount) * 100}%`, height: '100%', background: isMe ? '#0F6E56' : '#534AB7', borderRadius: 3, minWidth: count > 0 ? 4 : 0 }} />
                   </div>
