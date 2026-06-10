@@ -70,11 +70,11 @@ function SearchBar({ onNavigate }) {
     if (onNavigate) onNavigate()
   }
 
-  function handleSelect(movie) {
+  function handleSelect(e, movie) {
+    e.preventDefault()
     setQuery('')
     setOpen(false)
     navigate(`/movie/${movie.id}`)
-    if (onNavigate) onNavigate()
   }
 
   return (
@@ -103,7 +103,7 @@ function SearchBar({ onNavigate }) {
           {results.map(m => (
             <div
               key={m.id}
-              onMouseDown={() => handleSelect(m)}
+              onMouseDown={(e) => handleSelect(e, m)}
               style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', cursor: 'pointer', borderBottom: '0.5px solid #f5f5f5' }}
               onMouseEnter={e => e.currentTarget.style.background = '#f9f9f9'}
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
