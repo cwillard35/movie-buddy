@@ -250,7 +250,7 @@ export default function MyFilms() {
               </div>
               {s.status === 'scored' && (
                 <div style={{ fontSize: 14, fontWeight: 500, color: scoreColor(s.score), flexShrink: 0 }}>
-                  {parseFloat(s.score).toFixed(1)}
+                  {parseFloat(s.score).toFixed(2)}
                 </div>
               )}
               {s.status === 'unseen' && (
@@ -276,7 +276,7 @@ export default function MyFilms() {
                 <div style={{ fontSize: 10, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.movies?.title}</div>
                 {s.status === 'scored' && (
                   <div style={{ fontSize: 12, fontWeight: 500, color: scoreColor(s.score), marginTop: 2 }}>
-                    {parseFloat(s.score).toFixed(1)}
+                    {parseFloat(s.score).toFixed(2)}
                   </div>
                 )}
               </div>

@@ -240,11 +240,11 @@ export default function Buddies() {
                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                           <div style={{ fontSize: 10 }}>
                             <span style={{ color: '#888' }}>you </span>
-                            <span style={{ fontWeight: 500, color: scoreColor(m.myScore) }}>{m.myScore.toFixed(1)}</span>
+                            <span style={{ fontWeight: 500, color: scoreColor(m.myScore) }}>{m.myScore.toFixed(2)}</span>
                           </div>
                           <div style={{ fontSize: 10 }}>
                             <span style={{ color: '#888' }}>{selected.username.split(' ')[0]} </span>
-                            <span style={{ fontWeight: 500, color: scoreColor(m.theirScore) }}>{m.theirScore.toFixed(1)}</span>
+                            <span style={{ fontWeight: 500, color: scoreColor(m.theirScore) }}>{m.theirScore.toFixed(2)}</span>
                           </div>
                         </div>
                       </div>
@@ -265,7 +265,7 @@ export default function Buddies() {
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.movies?.title}</div>
                         <div style={{ fontSize: 10, color: '#888' }}>{s.movies?.year} · {s.movies?.genres?.slice(0, 2).join(', ')}</div>
-                        <div style={{ fontSize: 10, color: '#534AB7', fontWeight: 500 }}>{selected.username} scored {parseFloat(s.score).toFixed(1)}</div>
+                        <div style={{ fontSize: 10, color: '#534AB7', fontWeight: 500 }}>{selected.username} scored {parseFloat(s.score).toFixed(2)}</div>
                       </div>
                       <button onClick={() => navigate(`/log?movie=${s.movie_id}`)} style={{
                         fontSize: 10, padding: '3px 10px', borderRadius: 8,

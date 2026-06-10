@@ -33,7 +33,7 @@ export default function Dashboard() {
         const avg = scores.reduce((sum, s) => sum + parseFloat(s.score), 0) / total
         setStats({
           total,
-          avg: avg.toFixed(1),
+          avg: avg.toFixed(2),
           username: profile?.display_name || profile?.username || user.email
         })
         setRecentScores(scores.slice(0, 5))
@@ -148,7 +148,7 @@ export default function Dashboard() {
                   )}
                 </div>
                 <div style={{ fontSize: 14, fontWeight: 500, color: scoreColor(parseFloat(s.score)), flexShrink: 0 }}>
-                  {parseFloat(s.score).toFixed(1)}
+                  {parseFloat(s.score).toFixed(2)}
                 </div>
               </div>
             )

@@ -190,7 +190,7 @@ export default function Top25() {
               <div style={{ textAlign: 'right', flexShrink: 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 500, color: scoreColor(m[scoreKey]) }}>{m[scoreKey]?.toFixed(2)}</div>
                 {mode === 'group' && m.myScore && (
-                  <div style={{ fontSize: 10, color: '#888' }}>mine {m.myScore.toFixed(1)}</div>
+                  <div style={{ fontSize: 10, color: '#888' }}>mine {m.myScore.toFixed(2)}</div>
                 )}
                 {mode === 'mine' && m.groupScore && !isNaN(m.groupScore) && (
                   <div style={{ fontSize: 10, color: '#888' }}>group {m.groupScore.toFixed(2)}</div>
@@ -221,7 +221,7 @@ export default function Top25() {
               <div style={{ textAlign: 'right', flexShrink: 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 500, color: scoreColor(m[scoreKey]) }}>{m[scoreKey]?.toFixed(2)}</div>
                 {mode === 'group' && m.myScore && (
-                  <div style={{ fontSize: 10, color: '#888' }}>mine {m.myScore.toFixed(1)}</div>
+                  <div style={{ fontSize: 10, color: '#888' }}>mine {m.myScore.toFixed(2)}</div>
                 )}
               </div>
             </div>

@@ -120,7 +120,7 @@ export default function Profile() {
   if (loading) return <div style={{ padding: 20 }}>Loading...</div>
 
   const avg = scores.length > 0
-    ? (scores.reduce((sum, s) => sum + parseFloat(s.score), 0) / scores.length).toFixed(1)
+    ? (scores.reduce((sum, s) => sum + parseFloat(s.score), 0) / scores.length).toFixed(2)
     : '—'
 
   const top10 = [...scores]
@@ -270,7 +270,7 @@ export default function Profile() {
             { label: 'Films scored', value: scores.length },
             { label: 'Avg score', value: avg },
             { label: 'Years active', value: new Date().getFullYear() - memberYear || '—' },
-            { label: 'Top score', value: top10[0] ? parseFloat(top10[0].score).toFixed(1) : '—' },
+            { label: 'Top score', value: top10[0] ? parseFloat(top10[0].score).toFixed(2) : '—' },
           ].map(stat => (
             <div key={stat.label} style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 20, fontWeight: 500 }}>{stat.value}</div>
@@ -293,7 +293,7 @@ export default function Profile() {
                     : <div style={{ width: '100%', aspectRatio: '2/3', borderRadius: 8, background: '#EEEDFE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>🎬</div>
                   }
                   <div style={{ position: 'absolute', top: 4, left: 4, fontSize: 9, fontWeight: 500, background: 'rgba(83,74,183,0.9)', color: '#fff', padding: '1px 5px', borderRadius: 10 }}>#{i + 1}</div>
-                  <div style={{ position: 'absolute', bottom: 4, right: 4, fontSize: 10, fontWeight: 500, background: 'rgba(15,110,86,0.9)', color: '#fff', padding: '1px 5px', borderRadius: 10 }}>{parseFloat(s.score).toFixed(1)}</div>
+                  <div style={{ position: 'absolute', bottom: 4, right: 4, fontSize: 10, fontWeight: 500, background: 'rgba(15,110,86,0.9)', color: '#fff', padding: '1px 5px', borderRadius: 10 }}>{parseFloat(s.score).toFixed(2)}</div>
                 </div>
                 <div style={{ fontSize: 10, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.movies?.title}</div>
                 <div style={{ fontSize: 9, color: '#888' }}>{s.movies?.year}</div>
@@ -321,7 +321,7 @@ export default function Profile() {
                   <div style={{ fontSize: 10, color: '#888' }}>{s.movies?.year}</div>
                 </div>
                 <div style={{ fontSize: 13, fontWeight: 500, color: scoreColor(parseFloat(s.score)) }}>
-                  {parseFloat(s.score).toFixed(1)}
+                  {parseFloat(s.score).toFixed(2)}
                 </div>
               </div>
             ))}
@@ -337,7 +337,7 @@ export default function Profile() {
                 <div style={{ flex: 1, height: 5, background: '#f5f5f5', borderRadius: 3, overflow: 'hidden' }}>
                   <div style={{ width: `${(g.avg / maxGenreAvg) * 100}%`, height: '100%', background: '#534AB7', borderRadius: 3 }} />
                 </div>
-                <div style={{ fontSize: 11, fontWeight: 500, color: '#534AB7', minWidth: 28, textAlign: 'right' }}>{g.avg.toFixed(1)}</div>
+                <div style={{ fontSize: 11, fontWeight: 500, color: '#534AB7', minWidth: 28, textAlign: 'right' }}>{g.avg.toFixed(2)}</div>
               </div>
             ))}
           </div>
