@@ -10,51 +10,33 @@ export default function Top25() {
   const [decade, setDecade] = useState('all')
   const [threshold, setThreshold] = useState(5)
   const [genres, setGenres] = useState([])
-  const [userId, setUserId] = useState(null)
   const navigate = useNavigate()
 
   useEffect(() => {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser()
-      if (user) setUserId(user.id)
 
-      const { data, error } = await supabase
-        .from('scores')
-        .select('*, movies(*)')
-        .eq('status', 'scored')
-        .not('score', 'is', null)
-        .range(0, 9999)
+      // Fetch pre-aggregated group averages from RPC
+      const { data: groupData, error: groupError } = await supabase.rpc('get_top25_films')
+      if (groupError) { console.error('RPC error:', groupError); return }
 
-      if (error) { console.error(error); return }
-
-      const movieMap = {}
-      for (const s of data) {
-        const mid = s.movie_id
-        const val = parseFloat(s.score)
-        if (isNaN(val)) continue  // skip any rows with non-numeric scores
-        if (!movieMap[mid]) {
-          movieMap[mid] = { movie: s.movies, scores: [], myScore: null }
-        }
-        movieMap[mid].scores.push(val)
-        if (s.user_id === user?.id) {
-          movieMap[mid].myScore = val
-        }
+      // Fetch this user's own scores (small query)
+      let myScoreMap = {}
+      if (user) {
+        const { data: myScores } = await supabase
+          .from('scores')
+          .select('movie_id, score')
+          .eq('user_id', user.id)
+          .eq('status', 'scored')
+        myScores?.forEach(s => { myScoreMap[s.movie_id] = parseFloat(s.score) })
       }
 
-      const enriched = Object.values(movieMap)
-        .map(m => {
-          const validScores = m.scores.filter(v => !isNaN(v))
-          const groupScore = validScores.length > 0
-            ? validScores.reduce((a, b) => a + b, 0) / validScores.length
-            : null
-          return {
-            ...m.movie,
-            groupScore,
-            myScore: m.myScore,
-            scoredBy: validScores.length
-          }
-        })
-        .filter(m => m.groupScore !== null && !isNaN(m.groupScore))
+      const enriched = groupData.map(m => ({
+        ...m,
+        groupScore: parseFloat(m.group_avg),
+        myScore: myScoreMap[m.id] ?? null,
+        scoredBy: parseInt(m.scored_by)
+      }))
 
       const allGenres = new Set()
       enriched.forEach(m => m.genres?.forEach(g => allGenres.add(g)))
@@ -205,10 +187,10 @@ export default function Top25() {
               </div>
               <div style={{ textAlign: 'right', flexShrink: 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 500, color: scoreColor(m[scoreKey]) }}>{m[scoreKey]?.toFixed(2)}</div>
-                {mode === 'group' && m.myScore && (
+                {mode === 'group' && m.myScore !== null && (
                   <div style={{ fontSize: 10, color: '#888' }}>mine {m.myScore.toFixed(2)}</div>
                 )}
-                {mode === 'mine' && m.groupScore && !isNaN(m.groupScore) && (
+                {mode === 'mine' && m.groupScore !== null && (
                   <div style={{ fontSize: 10, color: '#888' }}>group {m.groupScore.toFixed(2)}</div>
                 )}
               </div>
@@ -236,7 +218,7 @@ export default function Top25() {
               </div>
               <div style={{ textAlign: 'right', flexShrink: 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 500, color: scoreColor(m[scoreKey]) }}>{m[scoreKey]?.toFixed(2)}</div>
-                {mode === 'group' && m.myScore && (
+                {mode === 'group' && m.myScore !== null && (
                   <div style={{ fontSize: 10, color: '#888' }}>mine {m.myScore.toFixed(2)}</div>
                 )}
               </div>
