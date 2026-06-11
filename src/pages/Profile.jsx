@@ -170,6 +170,13 @@ export default function Profile() {
           grid-template-columns: repeat(5, 1fr);
           gap: 8px;
         }
+        .top10-label {
+          display: block;
+        }
+        @media (max-width: 480px) {
+          .top10-grid { gap: 5px; }
+          .top10-label { display: none; }
+        }
         .profile-bottom {
           display: grid;
           grid-template-columns: 1fr 1fr;
@@ -284,6 +291,7 @@ export default function Profile() {
       {privacy.show_top10 && (
         <div style={{ background: '#fff', borderRadius: 12, border: '0.5px solid #eee', padding: 16, marginBottom: 14 }}>
           <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 12 }}>🏆 Your top 10</div>
+          <div style={{ overflow: 'hidden' }}>
           <div className="top10-grid">
             {top10.map((s, i) => (
               <div key={s.id} onClick={() => navigate(`/movie/${s.movie_id}`)} style={{ cursor: 'pointer' }}>
@@ -295,12 +303,13 @@ export default function Profile() {
                   <div style={{ position: 'absolute', top: 4, left: 4, fontSize: 9, fontWeight: 500, background: 'rgba(83,74,183,0.9)', color: '#fff', padding: '1px 5px', borderRadius: 10 }}>#{i + 1}</div>
                   <div style={{ position: 'absolute', bottom: 4, right: 4, fontSize: 10, fontWeight: 500, background: 'rgba(15,110,86,0.9)', color: '#fff', padding: '1px 5px', borderRadius: 10 }}>{parseFloat(s.score).toFixed(2)}</div>
                 </div>
-                <div style={{ fontSize: 10, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.movies?.title}</div>
-                <div style={{ fontSize: 9, color: '#888' }}>{s.movies?.year}</div>
+                <div className="top10-label" style={{ fontSize: 10, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.movies?.title}</div>
+                <div className="top10-label" style={{ fontSize: 9, color: '#888' }}>{s.movies?.year}</div>
               </div>
             ))}
           </div>
         </div>
+      </div>
       )}
 
       <div className="profile-bottom">
