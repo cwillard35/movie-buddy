@@ -203,24 +203,69 @@ function ScorePanel({ movie, userId, existingScore, onSaved, onCancel }) {
   return (
     <div style={{ marginTop: 12, background: '#f9f9f9', borderRadius: 10, padding: 14, border: '0.5px solid #e8e6fb' }}>
       <div style={{ textAlign: 'center', marginBottom: 12 }}>
-        <div style={{ fontSize: 44, fontWeight: 500, color: scoreColor(score), lineHeight: 1 }}>{score % 1 === 0 ? score.toFixed(2) : score.toFixed(2)}</div>
-        <div style={{ fontSize: 11, color: '#888', marginTop: 2 }}>drag or tap a score</div>
+        <div style={{ fontSize: 44, fontWeight: 500, color: scoreColor(score), lineHeight: 1 }}>{score.toFixed(2)}</div>
+        <div style={{ fontSize: 11, color: '#888', marginTop: 2 }}>drag the slider or tap a score</div>
       </div>
+      <style>{`
+        .score-range {
+          -webkit-appearance: none;
+          appearance: none;
+          width: 100%;
+          height: 4px;
+          border-radius: 2px;
+          background: linear-gradient(to right, #534AB7 0%, #534AB7 ${((score - 1) / 9) * 100}%, #ddd ${((score - 1) / 9) * 100}%, #ddd 100%);
+          outline: none;
+          margin-bottom: 6px;
+          cursor: pointer;
+        }
+        .score-range::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          appearance: none;
+          width: 22px;
+          height: 22px;
+          border-radius: 50%;
+          background: #fff;
+          border: 2px solid #534AB7;
+          box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+          cursor: pointer;
+        }
+        .score-range::-moz-range-thumb {
+          width: 22px;
+          height: 22px;
+          border-radius: 50%;
+          background: #fff;
+          border: 2px solid #534AB7;
+          box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+          cursor: pointer;
+        }
+        .score-range::-webkit-slider-runnable-track { border-radius: 2px; }
+        .score-range::-moz-range-track { height: 4px; border-radius: 2px; }
+        .score-tap-btn {
+          padding: 6px 0;
+          border-radius: 20px;
+          border: 0.5px solid #ddd;
+          background: transparent;
+          font-size: 12px;
+          color: #555;
+          cursor: pointer;
+          font-family: inherit;
+          transition: all 0.1s;
+          text-align: center;
+        }
+        .score-tap-btn.selected {
+          background: #534AB7;
+          color: #fff;
+          border-color: #534AB7;
+        }
+      `}</style>
       <input
         type="range" min="1" max="10" step="0.25" value={score}
         onChange={e => setScore(parseFloat(e.target.value))}
-        style={{ width: '100%', marginBottom: 4 }}
+        className="score-range"
       />
-      <div style={{ position: 'relative', height: 16, marginBottom: 10 }}>
-        {[1,2,3,4,5,6,7,8,9,10].map(n => (
-          <span key={n} style={{
-            position: 'absolute',
-            left: `${(n - 1) / 9 * 100}%`,
-            transform: 'translateX(-50%)',
-            fontSize: 10,
-            color: '#aaa',
-            whiteSpace: 'nowrap'
-          }}>{n}</span>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12, padding: '0 2px' }}>
+        {[1,3,5,7,9,10].map(n => (
+          <span key={n} style={{ fontSize: 10, color: '#bbb' }}>{n}.0</span>
         ))}
       </div>
 
