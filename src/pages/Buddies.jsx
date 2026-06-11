@@ -34,56 +34,19 @@ export default function Buddies() {
     setSelected(buddy)
     setDetailLoading(true)
 
-    const { data: myScores } = await supabase
-      .from('scores')
-      .select('movie_id, score, movies(*)')
-      .eq('user_id', uid || userId)
-      .eq('status', 'scored')
-      .gte('score', 7.5)
+    const [{ data: agreeData }, { data: recData }] = await Promise.all([
+      supabase.rpc('get_buddy_agreements', {
+        current_user_id: uid || userId,
+        buddy_user_id: buddy.user_id
+      }),
+      supabase.rpc('get_buddy_recs', {
+        current_user_id: uid || userId,
+        buddy_user_id: buddy.user_id
+      })
+    ])
 
-    const { data: theirScores } = await supabase
-      .from('scores')
-      .select('movie_id, score')
-      .eq('user_id', buddy.user_id)
-      .eq('status', 'scored')
-      .gte('score', 7.5)
-
-    if (myScores && theirScores) {
-      const theirMap = {}
-      theirScores.forEach(s => { theirMap[s.movie_id] = parseFloat(s.score) })
-      const shared = myScores
-        .filter(s => theirMap[s.movie_id])
-        .map(s => ({
-          ...s.movies,
-          myScore: parseFloat(s.score),
-          theirScore: theirMap[s.movie_id],
-          diff: Math.abs(parseFloat(s.score) - theirMap[s.movie_id])
-        }))
-        .sort((a, b) => a.diff - b.diff)
-        .slice(0, 6)
-      setAgreements(shared)
-    }
-
-    const { data: myAllScores } = await supabase
-      .from('scores')
-      .select('movie_id')
-      .eq('user_id', uid || userId)
-
-    const mySeen = new Set((myAllScores || []).map(s => s.movie_id))
-
-    const { data: theirHighScores } = await supabase
-      .from('scores')
-      .select('movie_id, score, movies(*)')
-      .eq('user_id', buddy.user_id)
-      .eq('status', 'scored')
-      .gte('score', 7.5)
-      .order('score', { ascending: false })
-
-    if (theirHighScores) {
-      const unseen = theirHighScores.filter(s => !mySeen.has(s.movie_id)).slice(0, 5)
-      setRecs(unseen)
-    }
-
+    setAgreements(agreeData || [])
+    setRecs(recData || [])
     setDetailLoading(false)
   }
 
@@ -231,7 +194,7 @@ export default function Buddies() {
                   <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 12 }}>Films you both loved</div>
                   <div className="buddies-agreements">
                     {agreements.map(m => (
-                      <div key={m.id} onClick={() => navigate(`/movie/${m.id}`)} style={{ cursor: 'pointer', background: '#f9f9f9', borderRadius: 8, padding: 10 }}>
+                      <div key={m.movie_id} onClick={() => navigate(`/movie/${m.movie_id}`)} style={{ cursor: 'pointer', background: '#f9f9f9', borderRadius: 8, padding: 10 }}>
                         {m.poster_url
                           ? <img src={m.poster_url} alt={m.title} style={{ width: '100%', height: 70, objectFit: 'cover', borderRadius: 6, marginBottom: 6 }} />
                           : <div style={{ width: '100%', height: 70, borderRadius: 6, background: '#EEEDFE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, marginBottom: 6 }}>🎬</div>
@@ -240,11 +203,11 @@ export default function Buddies() {
                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                           <div style={{ fontSize: 10 }}>
                             <span style={{ color: '#888' }}>you </span>
-                            <span style={{ fontWeight: 500, color: scoreColor(m.myScore) }}>{m.myScore.toFixed(2)}</span>
+                            <span style={{ fontWeight: 500, color: scoreColor(parseFloat(m.my_score)) }}>{parseFloat(m.my_score).toFixed(2)}</span>
                           </div>
                           <div style={{ fontSize: 10 }}>
                             <span style={{ color: '#888' }}>{selected.username.split(' ')[0]} </span>
-                            <span style={{ fontWeight: 500, color: scoreColor(m.theirScore) }}>{m.theirScore.toFixed(2)}</span>
+                            <span style={{ fontWeight: 500, color: scoreColor(parseFloat(m.their_score)) }}>{parseFloat(m.their_score).toFixed(2)}</span>
                           </div>
                         </div>
                       </div>
@@ -258,16 +221,16 @@ export default function Buddies() {
                   <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 12 }}>Films {selected.username} loved that you haven't seen</div>
                   {recs.map(s => (
                     <div key={s.movie_id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', borderBottom: '0.5px solid #f0f0f0' }}>
-                      {s.movies?.poster_url
-                        ? <img src={s.movies.poster_url} alt={s.movies?.title} style={{ width: 28, height: 42, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
+                      {s.poster_url
+                        ? <img src={s.poster_url} alt={s.title} style={{ width: 28, height: 42, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
                         : <div style={{ width: 28, height: 42, borderRadius: 4, background: '#EEEDFE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, flexShrink: 0 }}>🎬</div>
                       }
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.movies?.title}</div>
-                        <div style={{ fontSize: 10, color: '#888' }}>{s.movies?.year} · {s.movies?.genres?.slice(0, 2).join(', ')}</div>
-                        <div style={{ fontSize: 10, color: '#534AB7', fontWeight: 500 }}>{selected.username} scored {parseFloat(s.score).toFixed(2)}</div>
+                        <div style={{ fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.title}</div>
+                        <div style={{ fontSize: 10, color: '#888' }}>{s.year} · {s.genres?.slice(0, 2).join(', ')}</div>
+                        <div style={{ fontSize: 10, color: '#534AB7', fontWeight: 500 }}>{selected.username} scored {parseFloat(s.buddy_score).toFixed(2)}</div>
                       </div>
-                      <button onClick={() => navigate(`/log?movie=${s.movie_id}`)} style={{
+                      <button onClick={() => navigate(`/movie/${s.movie_id}`)} style={{
                         fontSize: 10, padding: '3px 10px', borderRadius: 8,
                         border: '0.5px solid #AFA9EC', background: 'transparent',
                         color: '#534AB7', cursor: 'pointer', flexShrink: 0
