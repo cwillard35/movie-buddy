@@ -23,6 +23,7 @@ export default function Top25() {
         .select('*, movies(*), users(username, id)')
         .eq('status', 'scored')
         .not('score', 'is', null)
+        .range(0, 9999)
 
       if (error) { console.error(error); return }
 
