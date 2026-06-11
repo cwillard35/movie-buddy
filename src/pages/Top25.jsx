@@ -7,7 +7,8 @@ export default function Top25() {
   const [loading, setLoading] = useState(true)
   const [mode, setMode] = useState('group')
   const [genre, setGenre] = useState('all')
-  const [decade, setDecade] = useState('all')
+  const [yearMin, setYearMin] = useState('')
+  const [yearMax, setYearMax] = useState('')
   const [threshold, setThreshold] = useState(5)
   const [genres, setGenres] = useState([])
   const navigate = useNavigate()
@@ -16,11 +17,9 @@ export default function Top25() {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser()
 
-      // Fetch pre-aggregated group averages from RPC
       const { data: groupData, error: groupError } = await supabase.rpc('get_top25_films')
       if (groupError) { console.error('RPC error:', groupError); return }
 
-      // Fetch this user's own scores (small query)
       let myScoreMap = {}
       if (user) {
         const { data: myScores } = await supabase
@@ -53,18 +52,14 @@ export default function Top25() {
     return '#993C1D'
   }
 
+  const minY = yearMin ? parseInt(yearMin) : null
+  const maxY = yearMax ? parseInt(yearMax) : null
+
   let filtered = films.filter(m => {
     if (m.scoredBy < threshold) return false
     if (genre !== 'all' && !m.genres?.includes(genre)) return false
-    if (decade !== 'all') {
-      const d = Math.floor(m.year / 10) * 10
-      if (decade === 'pre1980' && d >= 1980) return false
-      if (decade === '1980s' && d !== 1980) return false
-      if (decade === '1990s' && d !== 1990) return false
-      if (decade === '2000s' && d !== 2000) return false
-      if (decade === '2010s' && d !== 2010) return false
-      if (decade === '2020s' && d !== 2020) return false
-    }
+    if (minY && m.year < minY) return false
+    if (maxY && m.year > maxY) return false
     return true
   })
 
@@ -96,6 +91,17 @@ export default function Top25() {
           grid-template-columns: 3fr 2fr;
           gap: 14px;
         }
+        .year-input {
+          font-size: 12px;
+          padding: 5px 8px;
+          border-radius: 8px;
+          border: 0.5px solid #ddd;
+          width: 72px;
+        }
+        .year-input:focus {
+          outline: none;
+          border-color: #534AB7;
+        }
         @media (max-width: 768px) {
           .top25-filters {
             flex-direction: column;
@@ -105,6 +111,9 @@ export default function Top25() {
             width: 100%;
           }
           .top25-filters input[type=range] {
+            width: 100%;
+          }
+          .year-input {
             width: 100%;
           }
           .top25-toggle {
@@ -125,17 +134,28 @@ export default function Top25() {
       <div style={{ background: '#fff', borderRadius: 12, border: '0.5px solid #eee', padding: 14, marginBottom: 14 }}>
         <div className="top25-filters">
           <div>
-            <div style={{ fontSize: 11, color: '#888', marginBottom: 4 }}>Decade</div>
-            <select value={decade} onChange={e => setDecade(e.target.value)}
-              style={{ fontSize: 12, padding: '5px 8px', borderRadius: 8, border: '0.5px solid #ddd' }}>
-              <option value="all">All decades</option>
-              <option value="pre1980">Pre-1980</option>
-              <option value="1980s">1980s</option>
-              <option value="1990s">1990s</option>
-              <option value="2000s">2000s</option>
-              <option value="2010s">2010s</option>
-              <option value="2020s">2020s</option>
-            </select>
+            <div style={{ fontSize: 11, color: '#888', marginBottom: 4 }}>From year</div>
+            <input
+              type="number"
+              className="year-input"
+              placeholder="e.g. 1980"
+              value={yearMin}
+              min="1900"
+              max="2099"
+              onChange={e => setYearMin(e.target.value)}
+            />
+          </div>
+          <div>
+            <div style={{ fontSize: 11, color: '#888', marginBottom: 4 }}>To year</div>
+            <input
+              type="number"
+              className="year-input"
+              placeholder="e.g. 2015"
+              value={yearMax}
+              min="1900"
+              max="2099"
+              onChange={e => setYearMax(e.target.value)}
+            />
           </div>
           <div>
             <div style={{ fontSize: 11, color: '#888', marginBottom: 4 }}>Genre</div>
