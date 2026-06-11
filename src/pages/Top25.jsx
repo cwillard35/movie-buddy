@@ -22,27 +22,38 @@ export default function Top25() {
         .from('scores')
         .select('*, movies(*), users(username, id)')
         .eq('status', 'scored')
+        .not('score', 'is', null)
 
       if (error) { console.error(error); return }
 
       const movieMap = {}
       for (const s of data) {
         const mid = s.movie_id
+        const val = parseFloat(s.score)
+        if (isNaN(val)) continue  // skip any rows with non-numeric scores
         if (!movieMap[mid]) {
           movieMap[mid] = { movie: s.movies, scores: [], myScore: null }
         }
-        movieMap[mid].scores.push(parseFloat(s.score))
+        movieMap[mid].scores.push(val)
         if (s.user_id === user?.id) {
-          movieMap[mid].myScore = parseFloat(s.score)
+          movieMap[mid].myScore = val
         }
       }
 
-      const enriched = Object.values(movieMap).map(m => ({
-        ...m.movie,
-        groupScore: m.scores.length > 0 ? m.scores.reduce((a, b) => a + b, 0) / m.scores.length : null,
-        myScore: m.myScore,
-        scoredBy: m.scores.length
-      }))
+      const enriched = Object.values(movieMap)
+        .map(m => {
+          const validScores = m.scores.filter(v => !isNaN(v))
+          const groupScore = validScores.length > 0
+            ? validScores.reduce((a, b) => a + b, 0) / validScores.length
+            : null
+          return {
+            ...m.movie,
+            groupScore,
+            myScore: m.myScore,
+            scoredBy: validScores.length
+          }
+        })
+        .filter(m => m.groupScore !== null && !isNaN(m.groupScore))
 
       const allGenres = new Set()
       enriched.forEach(m => m.genres?.forEach(g => allGenres.add(g)))
@@ -64,6 +75,8 @@ export default function Top25() {
     if (genre !== 'all' && !m.genres?.includes(genre)) return false
     if (decade !== 'all') {
       const d = Math.floor(m.year / 10) * 10
+      if (decade === 'pre1980' && d >= 1980) return false
+      if (decade === '1980s' && d !== 1980) return false
       if (decade === '1990s' && d !== 1990) return false
       if (decade === '2000s' && d !== 2000) return false
       if (decade === '2010s' && d !== 2010) return false
@@ -73,7 +86,7 @@ export default function Top25() {
   })
 
   const scoreKey = mode === 'group' ? 'groupScore' : 'myScore'
-  filtered = filtered.filter(m => m[scoreKey] !== null)
+  filtered = filtered.filter(m => m[scoreKey] !== null && !isNaN(m[scoreKey]))
   filtered.sort((a, b) => b[scoreKey] - a[scoreKey])
 
   const top25 = filtered.slice(0, 25)
@@ -133,6 +146,8 @@ export default function Top25() {
             <select value={decade} onChange={e => setDecade(e.target.value)}
               style={{ fontSize: 12, padding: '5px 8px', borderRadius: 8, border: '0.5px solid #ddd' }}>
               <option value="all">All decades</option>
+              <option value="pre1980">Pre-1980</option>
+              <option value="1980s">1980s</option>
               <option value="1990s">1990s</option>
               <option value="2000s">2000s</option>
               <option value="2010s">2010s</option>
