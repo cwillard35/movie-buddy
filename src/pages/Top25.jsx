@@ -20,7 +20,7 @@ export default function Top25() {
 
       const { data, error } = await supabase
         .from('scores')
-        .select('*, movies(*), users!scores_user_id_fkey!left(username, id)')
+        .select('*, movies(*)')
         .eq('status', 'scored')
         .not('score', 'is', null)
         .range(0, 9999)
