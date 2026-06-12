@@ -14,7 +14,6 @@ export default function MyFilms() {
   const [search, setSearch] = useState('')
   const [genre, setGenre] = useState('all')
   const [sort, setSort] = useState('score-desc')
-  const [view, setView] = useState('list')
   const [genres, setGenres] = useState([])
   const [userId, setUserId] = useState(null)
   const [page, setPage] = useState(0)
@@ -267,15 +266,6 @@ export default function MyFilms() {
           </select>
         </div>
 
-        <div style={{ display: 'flex', gap: 2 }}>
-          {['list', 'grid'].map(v => (
-            <button key={v} onClick={() => setView(v)} style={{
-              padding: '5px 8px', borderRadius: 8, border: '0.5px solid #ddd',
-              background: view === v ? '#EEEDFE' : 'transparent',
-              color: view === v ? '#534AB7' : '#666', cursor: 'pointer', fontSize: 13
-            }}>{v === 'list' ? '☰' : '⊞'}</button>
-          ))}
-        </div>
       </div>
 
       <div style={{ fontSize: 11, color: '#888', marginBottom: 10 }}>
@@ -283,66 +273,33 @@ export default function MyFilms() {
         {(search || genre !== 'all') && ' (filtered)'}
       </div>
 
-      {view === 'list' && (
-        <div style={{ background: '#fff', borderRadius: 12, border: '0.5px solid #eee' }}>
-          {films.length === 0 && (
-            <div style={{ padding: 24, textAlign: 'center', color: '#888', fontSize: 13 }}>No films found</div>
-          )}
-          {films.map((s, i) => (
-            <div key={s.id} onClick={() => navigate(`/movie/${s.movie_id}`)} style={{
-              display: 'flex', alignItems: 'center', gap: 12, padding: '8px 14px',
-              borderBottom: i < films.length - 1 ? '0.5px solid #f0f0f0' : 'none',
-              cursor: 'pointer'
-            }}>
-              {s.movies?.poster_url
-                ? <img src={s.movies.poster_url} alt={s.movies.title} style={{ width: 70, height: 105, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} />
-                : <div style={{ width: 70, height: 105, borderRadius: 6, background: '#EEEDFE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0 }}>🎬</div>
-              }
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.movies?.title}</div>
-                <div style={{ fontSize: 11, color: '#888' }}>{s.movies?.year} · {s.movies?.genres?.slice(0, 2).join(', ')}</div>
-              </div>
-              {s.status === 'scored' && (
-                <div style={{ fontSize: 14, fontWeight: 500, color: scoreColor(s.score), flexShrink: 0 }}>
-                  {parseFloat(s.score).toFixed(2)}
-                </div>
-              )}
-              {s.status === 'unseen' && (
-                <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: '#F1EFE8', color: '#666' }}>unseen</span>
-              )}
-              {s.status === 'skipped' && (
-                <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: '#FAECE7', color: '#993C1D' }}>skipped</span>
-              )}
-            </div>
-          ))}
-        </div>
+      {films.length === 0 && (
+        <div style={{ padding: 24, textAlign: 'center', color: '#888', fontSize: 13, background: '#fff', borderRadius: 12, border: '0.5px solid #eee' }}>No films found</div>
       )}
 
-      {view === 'grid' && (
-        <div className="films-poster-grid">
-          {films.map(s => (
-            <div key={s.id} className="films-poster-card" onClick={() => navigate(`/movie/${s.movie_id}`)}>
-              {s.movies?.poster_url
-                ? <img src={s.movies.poster_url} alt={s.movies.title} className="films-poster-img" loading="lazy" />
-                : <div className="films-poster-placeholder">🎬</div>
-              }
-              <div className="films-poster-title">{s.movies?.title}</div>
-              <div className="films-poster-meta">
-                {s.status === 'scored' && (
-                  <span style={{ fontWeight: 500, color: scoreColor(s.score) }}>{parseFloat(s.score).toFixed(2)}</span>
-                )}
-                {s.status === 'unseen' && (
-                  <span style={{ color: '#888' }}>unseen</span>
-                )}
-                {s.status === 'skipped' && (
-                  <span style={{ color: '#993C1D' }}>skipped</span>
-                )}
-                {' · '}{s.movies?.year}
-              </div>
+      <div className="films-poster-grid">
+        {films.map(s => (
+          <div key={s.id} className="films-poster-card" onClick={() => navigate(`/movie/${s.movie_id}`)}>
+            {s.movies?.poster_url
+              ? <img src={s.movies.poster_url} alt={s.movies.title} className="films-poster-img" loading="lazy" />
+              : <div className="films-poster-placeholder">🎬</div>
+            }
+            <div className="films-poster-title">{s.movies?.title}</div>
+            <div className="films-poster-meta">
+              {s.status === 'scored' && (
+                <span style={{ fontWeight: 500, color: scoreColor(s.score) }}>{parseFloat(s.score).toFixed(2)}</span>
+              )}
+              {s.status === 'unseen' && (
+                <span style={{ color: '#888' }}>unseen</span>
+              )}
+              {s.status === 'skipped' && (
+                <span style={{ color: '#993C1D' }}>skipped</span>
+              )}
+              {' · '}{s.movies?.year}
             </div>
-          ))}
-        </div>
-      )}
+          </div>
+        ))}
+      </div>
 
       {/* Load more */}
       {hasMore && (
