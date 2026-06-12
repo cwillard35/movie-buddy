@@ -202,7 +202,7 @@ export default function Nav({ session }) {
 
       {/* Desktop nav */}
       <nav className="nav-desktop">
-        <div style={{ fontWeight: 500, fontSize: 16, flexShrink: 0 }}>🎬 Movie Buddy</div>
+        <Link to="/" style={{ fontWeight: 500, fontSize: 16, flexShrink: 0, textDecoration: 'none', color: 'inherit' }}>🎬 Movie Buddy</Link>
 
         <SearchBar />
 
