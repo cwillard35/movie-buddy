@@ -10,6 +10,8 @@ export default function Top25() {
   const [yearMin, setYearMin] = useState('')
   const [yearMax, setYearMax] = useState('')
   const [threshold, setThreshold] = useState(5)
+  const [showSeen, setShowSeen] = useState(true)
+  const [showUnseen, setShowUnseen] = useState(true)
   const [genres, setGenres] = useState([])
   const navigate = useNavigate()
 
@@ -60,6 +62,9 @@ export default function Top25() {
     if (genre !== 'all' && !m.genres?.includes(genre)) return false
     if (minY && m.year < minY) return false
     if (maxY && m.year > maxY) return false
+    const seen = m.myScore !== null
+    if (seen && !showSeen) return false
+    if (!seen && !showUnseen) return false
     return true
   })
 
@@ -170,6 +175,19 @@ export default function Top25() {
             <input type="range" min="1" max="18" value={threshold}
               onChange={e => setThreshold(parseInt(e.target.value))}
               style={{ width: 120 }} />
+          </div>
+          <div>
+            <div style={{ fontSize: 11, color: '#888', marginBottom: 4 }}>Watched status</div>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center', height: 30 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, cursor: 'pointer' }}>
+                <input type="checkbox" checked={showSeen} onChange={e => setShowSeen(e.target.checked)} />
+                Seen by me
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, cursor: 'pointer' }}>
+                <input type="checkbox" checked={showUnseen} onChange={e => setShowUnseen(e.target.checked)} />
+                Not seen by me
+              </label>
+            </div>
           </div>
           <div className="top25-toggle">
             {['group', 'mine'].map(m => (
