@@ -160,6 +160,60 @@ export default function MyFilms() {
         }
         .status-tabs { display: flex; gap: 4px; }
         .films-search { flex: 1; min-width: 120px; }
+        .films-poster-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+          gap: 16px;
+        }
+        @media (max-width: 480px) {
+          .films-poster-grid {
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
+          }
+        }
+        .films-poster-card {
+          cursor: pointer;
+          border-radius: 8px;
+          overflow: hidden;
+          transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .films-poster-card:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+        }
+        .films-poster-img {
+          width: 100%;
+          aspect-ratio: 2/3;
+          object-fit: cover;
+          display: block;
+          background: #EEEDFE;
+          border-radius: 8px;
+        }
+        .films-poster-placeholder {
+          width: 100%;
+          aspect-ratio: 2/3;
+          background: #EEEDFE;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 32px;
+        }
+        .films-poster-title {
+          font-size: 12px;
+          font-weight: 500;
+          margin-top: 6px;
+          line-height: 1.3;
+          overflow: hidden;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+        }
+        .films-poster-meta {
+          font-size: 11px;
+          margin-top: 2px;
+          margin-bottom: 8px;
+        }
         @media (max-width: 768px) {
           .films-controls { flex-direction: column; align-items: stretch; }
           .status-tabs { width: 100%; }
@@ -265,20 +319,25 @@ export default function MyFilms() {
       )}
 
       {view === 'grid' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 10 }}>
+        <div className="films-poster-grid">
           {films.map(s => (
-            <div key={s.id} onClick={() => navigate(`/movie/${s.movie_id}`)} style={{ borderRadius: 8, overflow: 'hidden', border: '0.5px solid #eee', background: '#fff', cursor: 'pointer' }}>
+            <div key={s.id} className="films-poster-card" onClick={() => navigate(`/movie/${s.movie_id}`)}>
               {s.movies?.poster_url
-                ? <img src={s.movies.poster_url} alt={s.movies.title} style={{ width: '100%', height: 130, objectFit: 'cover' }} />
-                : <div style={{ width: '100%', height: 130, background: '#EEEDFE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>🎬</div>
+                ? <img src={s.movies.poster_url} alt={s.movies.title} className="films-poster-img" loading="lazy" />
+                : <div className="films-poster-placeholder">🎬</div>
               }
-              <div style={{ padding: 6 }}>
-                <div style={{ fontSize: 10, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.movies?.title}</div>
+              <div className="films-poster-title">{s.movies?.title}</div>
+              <div className="films-poster-meta">
                 {s.status === 'scored' && (
-                  <div style={{ fontSize: 12, fontWeight: 500, color: scoreColor(s.score), marginTop: 2 }}>
-                    {parseFloat(s.score).toFixed(2)}
-                  </div>
+                  <span style={{ fontWeight: 500, color: scoreColor(s.score) }}>{parseFloat(s.score).toFixed(2)}</span>
                 )}
+                {s.status === 'unseen' && (
+                  <span style={{ color: '#888' }}>unseen</span>
+                )}
+                {s.status === 'skipped' && (
+                  <span style={{ color: '#993C1D' }}>skipped</span>
+                )}
+                {' · '}{s.movies?.year}
               </div>
             </div>
           ))}
