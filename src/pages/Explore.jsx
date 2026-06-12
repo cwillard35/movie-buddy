@@ -156,8 +156,6 @@ export default function Explore() {
   function formatScore(v) { const n = parseFloat(v); return n % 1 === 0 ? n.toFixed(1) : n.toString() }
   function scoreColor(s) { if (s >= 8) return '#0F6E56'; if (s >= 6.5) return '#534AB7'; return '#993C1D' }
 
-  const quickScores = [1, 2, 3, 4, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10]
-
   // ── Scoring overlay ───────────────────────────────────────────────────────
   if (scoringMovie) {
     const posterUrl = scoringMovie.poster_path
@@ -207,13 +205,45 @@ export default function Explore() {
               <div style={{ fontSize: 52, fontWeight: 500, color: scoreColor(score), lineHeight: 1 }}>{formatScore(score)}</div>
               <div style={{ fontSize: 11, color: '#888', marginTop: 4 }}>drag the slider or tap a score</div>
             </div>
-            <input type="range" min="1" max="10" step="0.25" value={score} onChange={e => setScore(parseFloat(e.target.value))} style={{ width: '100%', marginBottom: 8 }} />
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#aaa', marginBottom: 12 }}>
-              <span>1.0</span><span>3.0</span><span>5.0</span><span>7.0</span><span>9.0</span><span>10.0</span>
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-              {quickScores.map(s => (
-                <button key={s} onClick={() => setScore(s)} style={{ fontSize: 11, padding: '4px 9px', borderRadius: 8, border: '0.5px solid #ddd', cursor: 'pointer', background: score === s ? '#EEEDFE' : 'transparent', color: score === s ? '#534AB7' : '#666', fontWeight: score === s ? 500 : 400 }}>{s.toFixed(1)}</button>
+            <style>{`
+              .explore-score-range {
+                -webkit-appearance: none;
+                appearance: none;
+                width: 100%;
+                height: 4px;
+                border-radius: 2px;
+                background: linear-gradient(to right, #534AB7 0%, #534AB7 ${((score - 1) / 9) * 100}%, #ddd ${((score - 1) / 9) * 100}%, #ddd 100%);
+                outline: none;
+                margin-bottom: 6px;
+                cursor: pointer;
+              }
+              .explore-score-range::-webkit-slider-thumb {
+                -webkit-appearance: none;
+                appearance: none;
+                width: 22px;
+                height: 22px;
+                border-radius: 50%;
+                background: #fff;
+                border: 2px solid #534AB7;
+                box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+                cursor: pointer;
+              }
+              .explore-score-range::-moz-range-thumb {
+                width: 22px;
+                height: 22px;
+                border-radius: 50%;
+                background: #fff;
+                border: 2px solid #534AB7;
+                box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+                cursor: pointer;
+              }
+              .explore-score-range::-webkit-slider-runnable-track { border-radius: 2px; }
+              .explore-score-range::-moz-range-track { height: 4px; border-radius: 2px; }
+            `}</style>
+            <input type="range" min="1" max="10" step="0.25" value={score} onChange={e => setScore(parseFloat(e.target.value))} className="explore-score-range" />
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, padding: '0 2px' }}>
+              {[1,3,5,7,9,10].map(n => (
+                <span key={n} style={{ fontSize: 10, color: '#bbb' }}>{n}.0</span>
               ))}
             </div>
           </div>
