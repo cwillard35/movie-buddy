@@ -8,6 +8,9 @@ export default function Buddies() {
   const [selected, setSelected] = useState(null)
   const [agreements, setAgreements] = useState([])
   const [recs, setRecs] = useState([])
+  const [disagreements, setDisagreements] = useState([])
+  const [recsReverse, setRecsReverse] = useState([])
+  const [view, setView] = useState('agreements')
   const [loading, setLoading] = useState(true)
   const [detailLoading, setDetailLoading] = useState(false)
   const [userId, setUserId] = useState(null)
@@ -32,9 +35,10 @@ export default function Buddies() {
 
   async function loadDetail(buddy, uid) {
     setSelected(buddy)
+    setView('agreements')
     setDetailLoading(true)
 
-    const [{ data: agreeData }, { data: recData }] = await Promise.all([
+    const [{ data: agreeData }, { data: recData }, { data: disagreeData }, { data: recRevData }] = await Promise.all([
       supabase.rpc('get_buddy_agreements', {
         current_user_id: uid || userId,
         buddy_user_id: buddy.user_id
@@ -42,11 +46,21 @@ export default function Buddies() {
       supabase.rpc('get_buddy_recs', {
         current_user_id: uid || userId,
         buddy_user_id: buddy.user_id
+      }),
+      supabase.rpc('get_buddy_disagreements', {
+        current_user_id: uid || userId,
+        buddy_user_id: buddy.user_id
+      }),
+      supabase.rpc('get_buddy_recs_reverse', {
+        current_user_id: uid || userId,
+        buddy_user_id: buddy.user_id
       })
     ])
 
     setAgreements(agreeData || [])
     setRecs(recData || [])
+    setDisagreements(disagreeData || [])
+    setRecsReverse(recRevData || [])
     setDetailLoading(false)
   }
 
@@ -189,7 +203,31 @@ export default function Buddies() {
                 </div>
               </div>
 
-              {agreements.length > 0 && (
+              <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2 }}>
+                {[
+                  { key: 'agreements', label: 'Films you both loved' },
+                  { key: 'disagreements', label: 'Films you disagreed on' },
+                  { key: 'recs', label: `${selected.username.split(' ')[0]} loved, you haven't seen` },
+                  { key: 'recsReverse', label: `You loved, ${selected.username.split(' ')[0]} hasn't seen` },
+                ].map(tab => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setView(tab.key)}
+                    style={{
+                      fontSize: 11, padding: '6px 12px', borderRadius: 16, whiteSpace: 'nowrap',
+                      border: view === tab.key ? '1px solid #534AB7' : '0.5px solid #eee',
+                      background: view === tab.key ? '#EEEDFE' : '#fff',
+                      color: view === tab.key ? '#534AB7' : '#666',
+                      fontWeight: view === tab.key ? 500 : 400,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {agreements.length > 0 && view === 'agreements' && (
                 <div style={{ background: '#fff', borderRadius: 12, border: '0.5px solid #eee', padding: 16 }}>
                   <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 12 }}>Films you both loved</div>
                   <div className="buddies-agreements">
@@ -216,7 +254,46 @@ export default function Buddies() {
                 </div>
               )}
 
-              {recs.length > 0 && (
+              {agreements.length === 0 && view === 'agreements' && (
+                <div style={{ padding: 16, color: '#888', fontSize: 13, background: '#fff', borderRadius: 12, border: '0.5px solid #eee' }}>
+                  No films you both loved yet.
+                </div>
+              )}
+
+              {disagreements.length > 0 && view === 'disagreements' && (
+                <div style={{ background: '#fff', borderRadius: 12, border: '0.5px solid #eee', padding: 16 }}>
+                  <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 12 }}>Films you disagreed on</div>
+                  <div className="buddies-agreements">
+                    {disagreements.map(m => (
+                      <div key={m.movie_id} onClick={() => navigate(`/movie/${m.movie_id}`)} style={{ cursor: 'pointer', background: '#f9f9f9', borderRadius: 8, padding: 10 }}>
+                        {m.poster_url
+                          ? <img src={m.poster_url} alt={m.title} style={{ width: '100%', height: 70, objectFit: 'cover', borderRadius: 6, marginBottom: 6 }} />
+                          : <div style={{ width: '100%', height: 70, borderRadius: 6, background: '#EEEDFE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, marginBottom: 6 }}>🎬</div>
+                        }
+                        <div style={{ fontSize: 11, fontWeight: 500, marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.title}</div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <div style={{ fontSize: 10 }}>
+                            <span style={{ color: '#888' }}>you </span>
+                            <span style={{ fontWeight: 500, color: scoreColor(parseFloat(m.my_score)) }}>{parseFloat(m.my_score).toFixed(2)}</span>
+                          </div>
+                          <div style={{ fontSize: 10 }}>
+                            <span style={{ color: '#888' }}>{selected.username.split(' ')[0]} </span>
+                            <span style={{ fontWeight: 500, color: scoreColor(parseFloat(m.their_score)) }}>{parseFloat(m.their_score).toFixed(2)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {disagreements.length === 0 && view === 'disagreements' && (
+                <div style={{ padding: 16, color: '#888', fontSize: 13, background: '#fff', borderRadius: 12, border: '0.5px solid #eee' }}>
+                  No major disagreements found.
+                </div>
+              )}
+
+              {recs.length > 0 && view === 'recs' && (
                 <div style={{ background: '#fff', borderRadius: 12, border: '0.5px solid #eee', padding: 16 }}>
                   <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 12 }}>Films {selected.username} loved that you haven't seen</div>
                   {recs.map(s => (
@@ -237,6 +314,42 @@ export default function Buddies() {
                       }}>+ Log</button>
                     </div>
                   ))}
+                </div>
+              )}
+
+              {recs.length === 0 && view === 'recs' && (
+                <div style={{ padding: 16, color: '#888', fontSize: 13, background: '#fff', borderRadius: 12, border: '0.5px solid #eee' }}>
+                  Nothing here — {selected.username} hasn't loved anything you haven't seen yet.
+                </div>
+              )}
+
+              {recsReverse.length > 0 && view === 'recsReverse' && (
+                <div style={{ background: '#fff', borderRadius: 12, border: '0.5px solid #eee', padding: 16 }}>
+                  <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 12 }}>Films you loved that {selected.username} hasn't seen</div>
+                  {recsReverse.map(s => (
+                    <div key={s.movie_id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', borderBottom: '0.5px solid #f0f0f0' }}>
+                      {s.poster_url
+                        ? <img src={s.poster_url} alt={s.title} style={{ width: 28, height: 42, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
+                        : <div style={{ width: 28, height: 42, borderRadius: 4, background: '#EEEDFE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, flexShrink: 0 }}>🎬</div>
+                      }
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.title}</div>
+                        <div style={{ fontSize: 10, color: '#888' }}>{s.year} · {s.genres?.slice(0, 2).join(', ')}</div>
+                        <div style={{ fontSize: 10, color: '#534AB7', fontWeight: 500 }}>you scored {parseFloat(s.buddy_score).toFixed(2)}</div>
+                      </div>
+                      <button onClick={() => navigate(`/movie/${s.movie_id}`)} style={{
+                        fontSize: 10, padding: '3px 10px', borderRadius: 8,
+                        border: '0.5px solid #AFA9EC', background: 'transparent',
+                        color: '#534AB7', cursor: 'pointer', flexShrink: 0
+                      }}>View</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {recsReverse.length === 0 && view === 'recsReverse' && (
+                <div style={{ padding: 16, color: '#888', fontSize: 13, background: '#fff', borderRadius: 12, border: '0.5px solid #eee' }}>
+                  Nothing here — {selected.username} has already seen everything you loved.
                 </div>
               )}
 
