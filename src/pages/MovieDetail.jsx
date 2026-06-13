@@ -261,13 +261,9 @@ function ScorePanel({ movie, userId, existingScore, onSaved, onCancel }) {
       <input
         type="range" min="1" max="10" step="0.25" value={score}
         onChange={e => setScore(parseFloat(e.target.value))}
+        onTouchEnd={e => setScore(parseFloat(e.target.value))}
         className="score-range"
       />
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12, padding: '0 2px' }}>
-        {[1,3,5,7,9,10].map(n => (
-          <span key={n} style={{ fontSize: 10, color: '#bbb' }}>{n}.0</span>
-        ))}
-      </div>
 
       <div style={{ borderTop: '0.5px solid #eee', paddingTop: 10, marginBottom: 10 }}>
         <div onClick={() => setShowOptional(!showOptional)} style={{ fontSize: 11, color: '#534AB7', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
