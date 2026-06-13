@@ -299,8 +299,8 @@ export default function Buddies() {
                   {recs.map(s => (
                     <div key={s.movie_id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', borderBottom: '0.5px solid #f0f0f0' }}>
                       {s.poster_url
-                        ? <img src={s.poster_url} alt={s.title} style={{ width: 28, height: 42, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
-                        : <div style={{ width: 28, height: 42, borderRadius: 4, background: '#EEEDFE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, flexShrink: 0 }}>🎬</div>
+                        ? <img src={s.poster_url} alt={s.title} style={{ width: 70, height: 105, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} />
+                        : <div style={{ width: 70, height: 105, borderRadius: 6, background: '#EEEDFE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0 }}>🎬</div>
                       }
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.title}</div>
@@ -329,8 +329,8 @@ export default function Buddies() {
                   {recsReverse.map(s => (
                     <div key={s.movie_id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', borderBottom: '0.5px solid #f0f0f0' }}>
                       {s.poster_url
-                        ? <img src={s.poster_url} alt={s.title} style={{ width: 28, height: 42, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
-                        : <div style={{ width: 28, height: 42, borderRadius: 4, background: '#EEEDFE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, flexShrink: 0 }}>🎬</div>
+                        ? <img src={s.poster_url} alt={s.title} style={{ width: 70, height: 105, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} />
+                        : <div style={{ width: 70, height: 105, borderRadius: 6, background: '#EEEDFE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0 }}>🎬</div>
                       }
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.title}</div>

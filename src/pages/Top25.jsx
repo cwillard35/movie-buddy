@@ -216,8 +216,8 @@ export default function Top25() {
             }}>
               <div style={{ fontSize: 12, color: i < 3 ? '#534AB7' : '#aaa', width: 22, textAlign: 'right', fontWeight: i < 3 ? 500 : 400, flexShrink: 0 }}>{i + 1}</div>
               {m.poster_url
-                ? <img src={m.poster_url} alt={m.title} style={{ width: 28, height: 42, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
-                : <div style={{ width: 28, height: 42, borderRadius: 4, background: '#EEEDFE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, flexShrink: 0 }}>🎬</div>
+                ? <img src={m.poster_url} alt={m.title} style={{ width: 70, height: 105, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} />
+                : <div style={{ width: 70, height: 105, borderRadius: 6, background: '#EEEDFE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0 }}>🎬</div>
               }
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.title}</div>
@@ -247,8 +247,8 @@ export default function Top25() {
             }}>
               <div style={{ fontSize: 12, color: '#aaa', width: 22, textAlign: 'right', flexShrink: 0 }}>{i + 1}</div>
               {m.poster_url
-                ? <img src={m.poster_url} alt={m.title} style={{ width: 28, height: 42, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
-                : <div style={{ width: 28, height: 42, borderRadius: 4, background: '#FAECE7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, flexShrink: 0 }}>🎬</div>
+                ? <img src={m.poster_url} alt={m.title} style={{ width: 70, height: 105, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} />
+                : <div style={{ width: 70, height: 105, borderRadius: 6, background: '#FAECE7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0 }}>🎬</div>
               }
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.title}</div>

@@ -14,9 +14,9 @@ function OutlierRow({ o, defendedIds, writing, draftText, setDraftText, setWriti
     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 0', borderBottom: '0.5px solid #f0f0f0' }}>
       {o.poster_url
         ? <img src={o.poster_url} alt={o.title} onClick={() => window.location.href = `/movie/${o.movie_id}`}
-            style={{ width: 32, height: 48, borderRadius: 4, objectFit: 'cover', flexShrink: 0, cursor: 'pointer' }} />
+            style={{ width: 70, height: 105, borderRadius: 6, objectFit: 'cover', flexShrink: 0, cursor: 'pointer' }} />
         : <div onClick={() => window.location.href = `/movie/${o.movie_id}`}
-            style={{ width: 32, height: 48, borderRadius: 4, background: '#FAECE7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0, cursor: 'pointer' }}>🎬</div>
+            style={{ width: 70, height: 105, borderRadius: 6, background: '#FAECE7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0, cursor: 'pointer' }}>🎬</div>
       }
       <div style={{ flex: 1, minWidth: 0 }}>
         <div onClick={() => window.location.href = `/movie/${o.movie_id}`}
@@ -224,8 +224,8 @@ export default function Defend() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, paddingBottom: 12, borderBottom: '0.5px solid #f0f0f0' }}>
                 {d.movies?.poster_url
                   ? <img src={d.movies.poster_url} alt={d.movies.title} onClick={() => navigate(`/movie/${d.movie_id}`)}
-                      style={{ width: 32, height: 48, borderRadius: 4, objectFit: 'cover', flexShrink: 0, cursor: 'pointer' }} />
-                  : <div style={{ width: 32, height: 48, borderRadius: 4, background: '#EEEDFE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>🎬</div>
+                      style={{ width: 70, height: 105, borderRadius: 6, objectFit: 'cover', flexShrink: 0, cursor: 'pointer' }} />
+                  : <div style={{ width: 70, height: 105, borderRadius: 6, background: '#EEEDFE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0 }}>🎬</div>
                 }
                 <div style={{ flex: 1 }}>
                   <div onClick={() => navigate(`/movie/${d.movie_id}`)} style={{ fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>{d.movies?.title}</div>
@@ -291,7 +291,7 @@ export default function Defend() {
               </div>
               {d.movies?.poster_url && (
                 <img src={d.movies.poster_url} alt={d.movies.title} onClick={() => navigate(`/movie/${d.movie_id}`)}
-                  style={{ width: 28, height: 42, borderRadius: 4, objectFit: 'cover', cursor: 'pointer', flexShrink: 0 }} />
+                  style={{ width: 70, height: 105, borderRadius: 6, objectFit: 'cover', cursor: 'pointer', flexShrink: 0 }} />
               )}
             </div>
             <div style={{ fontSize: 12, color: '#444', lineHeight: 1.6, padding: '10px 12px', background: '#f9f9f9', borderRadius: 8, marginBottom: 10 }}>

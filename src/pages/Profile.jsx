@@ -322,8 +322,8 @@ export default function Profile() {
                 borderBottom: '0.5px solid #f0f0f0', cursor: 'pointer'
               }}>
                 {s.movies?.poster_url
-                  ? <img src={s.movies.poster_url} alt={s.movies.title} style={{ width: 28, height: 42, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
-                  : <div style={{ width: 28, height: 42, borderRadius: 4, background: '#EEEDFE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, flexShrink: 0 }}>🎬</div>
+                  ? <img src={s.movies.poster_url} alt={s.movies.title} style={{ width: 70, height: 105, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} />
+                  : <div style={{ width: 70, height: 105, borderRadius: 6, background: '#EEEDFE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0 }}>🎬</div>
                 }
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.movies?.title}</div>
